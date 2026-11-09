@@ -327,6 +327,55 @@ cmd_pondere    = float(np.sum(cmd_real))
 
 CANAL_COLORS = [GOLD, TEAL, BLUE, PURPLE]
 
+# ── Données RH fictives ───────────────────────────────────────────────────────
+SERVICES_RH = ["Chocolaterie", "Sucrerie", "Conditionnement", "Administration", "Commercial", "Maintenance"]
+eff_cdi = np.array([18, 24, 15,  8, 6, 7])
+eff_cdd = np.array([ 3,  5,  4,  1, 1, 0])
+eff_int = np.array([ 2,  4,  3,  0, 0, 1])
+eff_total = int((eff_cdi + eff_cdd + eff_int).sum())
+
+ms_bud_mois  = 125.0
+ms_reel_mois = np.array([118, 122, 125, 128, 124, 126, 129, 131, 127, 130], dtype=float)
+ms_bud_arr   = np.full(10, ms_bud_mois)
+
+MOTIFS_ABS = ["Maladie", "AT/MP", "Injustifié", "Famille"]
+abs_atel = {
+    "Chocolaterie":    np.array([3.2, 1.1, 0.5, 0.8]),
+    "Sucrerie":        np.array([4.8, 2.1, 0.8, 0.9]),
+    "Conditionnement": np.array([2.5, 0.8, 0.3, 0.6]),
+}
+abs_mensuel = np.array([4.2, 3.8, 4.5, 3.9, 4.1, 3.7, 4.8, 5.2, 4.3, 4.1])
+abs_cible   = 4.0
+
+nb_at_ytd  = 3
+h_travail  = eff_total * 151.67 * 10
+tf_at      = round(nb_at_ytd * 1_000_000 / h_travail, 1)
+jours_at   = 45
+tg_at      = round(jours_at * 1_000 / h_travail, 2)
+
+entrees_ytd  = 8
+sorties_ytd  = 6
+taux_turn    = (entrees_ytd + sorties_ytd) / 2 / eff_total * 100
+
+h_form_plan  = 480
+h_form_real  = 342
+bdg_form_all = 35.0
+bdg_form_con = 28.5
+form_etp     = h_form_real / eff_total
+
+hs_par_at = {"Chocolaterie": 185, "Sucrerie": 320, "Conditionnement": 95}
+hs_total  = sum(hs_par_at.values())
+cout_hs   = hs_total * 18.5 / 1000   # k€
+
+TRANCHES_AGE = ["18–25", "26–35", "36–45", "46–55", "55+"]
+pyr_h = np.array([8, 18, 22, 14, 6])
+pyr_f = np.array([5, 12, 15, 10, 4])
+
+CATEGORIES = ["Ouvriers", "Agents maîtrise", "Employés", "Cadres"]
+eff_cat = np.array([48, 18, 15, 11])
+ms_cat  = np.array([62.5, 28.0, 20.5, 32.0])   # k€/mois
+ABS_COLORS = [RED, ORANGE, PURPLE, TEAL]
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def kpi(label, val, delta, icon, up, color=GOLD):
     dc    = GREEN if up else RED
@@ -443,11 +492,12 @@ st.markdown(
 )
 
 # ── Onglets ───────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "  📊  Vue Direction  ",
     "  🤝  Vue Commerciale  ",
     "  ⚙️  Production & Coûts  ",
     "  🏛  Fiscalité  ",
+    "  👥  Ressources Humaines  ",
     "  🔔  Alertes  "
 ])
 
@@ -1384,9 +1434,308 @@ with tab4:
 """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
-# TAB 5 — ALERTES
+# TAB 5 — RESSOURCES HUMAINES
 # ════════════════════════════════════════════════════════════════════════════════
 with tab5:
+    # ── KPI RH ────────────────────────────────────────────────────────────────
+    sec("Indicateurs RH — YTD Jan–Oct 2026")
+    rh1, rh2, rh3, rh4, rh5, rh6 = st.columns(6)
+    rh_kpis = [
+        (rh1, "Effectif total ETP",
+         str(eff_total), f"CDI {eff_cdi.sum()} · CDD {eff_cdd.sum()} · Int. {eff_int.sum()}",
+         True, "👥", GOLD),
+        (rh2, "Taux d'absentéisme",
+         f"{abs_mensuel[M]:.1f}%",
+         f"Cible {abs_cible:.1f}% · {abs_mensuel[M]-abs_cible:+.1f}pt",
+         abs_mensuel[M] <= abs_cible, "🏥", ORANGE),
+        (rh3, "Taux de turnover YTD",
+         f"{taux_turn:.1f}%",
+         f"{entrees_ytd} entrées · {sorties_ytd} sorties",
+         taux_turn < 10, "🔄", TEAL),
+        (rh4, "Masse salariale MTD",
+         f"{ms_reel_mois[M]:.0f} k€",
+         f"{ms_reel_mois[M]-ms_bud_mois:+.0f} k€ vs budget {ms_bud_mois:.0f} k€",
+         ms_reel_mois[M] <= ms_bud_mois, "💶", BLUE),
+        (rh5, "Taux fréquence AT",
+         str(tf_at),
+         f"{nb_at_ytd} AT · {jours_at} j perdus · TG {tg_at}",
+         tf_at < 15, "⛑️", RED if tf_at >= 15 else GREEN),
+        (rh6, "Formation / ETP",
+         f"{form_etp:.1f} h",
+         f"{h_form_real}h réal. / {h_form_plan}h plan · {h_form_real/h_form_plan*100:.0f}%",
+         h_form_real / h_form_plan >= 0.75, "🎓", PURPLE),
+    ]
+    for col, label, val, delta, up, icon, color in rh_kpis:
+        with col:
+            dc = GREEN if up else RED
+            arrow = "▲" if up else "▼"
+            glow = f"background:radial-gradient(ellipse at top,{color}18 0%,transparent 70%);"
+            col.markdown(f"""
+<div class="kpi" style="height:120px;">
+  <div class="kpi-top" style="background:{color};"></div>
+  <div class="kpi-glow" style="{glow}"></div>
+  <div class="kpi-icon">{icon}</div>
+  <div class="kpi-label" style="font-size:9px;">{label}</div>
+  <div class="kpi-val" style="font-size:20px;">{val}</div>
+  <div class="kpi-delta" style="color:{dc};font-size:10px;">{arrow}&nbsp;{delta}</div>
+</div>""", unsafe_allow_html=True)
+
+    # ── Masse salariale + Absentéisme ─────────────────────────────────────────
+    sec("Masse salariale & Absentéisme")
+    ms1, ms2 = st.columns(2)
+
+    with ms1:
+        fig_ms = go.Figure()
+        fig_ms.add_bar(x=MOIS, y=ms_bud_arr, name="Budget",
+                       marker=dict(color=BORDER, line_width=0), opacity=0.6)
+        fig_ms.add_bar(x=MOIS, y=ms_reel_mois, name="Réel",
+                       marker=dict(color=[RED if r > b else GREEN
+                                          for r, b in zip(ms_reel_mois, ms_bud_arr)],
+                                   line_width=0),
+                       text=[f"{r-b:+.0f}" for r, b in zip(ms_reel_mois, ms_bud_arr)],
+                       textposition="outside", textfont=dict(size=9, color=TEXT2))
+        fig_ms.update_layout(**layout_dark(
+            height=265, barmode="group",
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€", font=dict(color=TEXT3, size=10))),
+            xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10)),
+        ))
+        st.plotly_chart(fig_ms, width='stretch')
+
+    with ms2:
+        # Absentéisme par motif et par atelier (stacked horizontal)
+        fig_abs = go.Figure()
+        for motif, color in zip(MOTIFS_ABS, ABS_COLORS):
+            mi = MOTIFS_ABS.index(motif)
+            fig_abs.add_bar(
+                y=list(abs_atel.keys()),
+                x=[abs_atel[a][mi] for a in abs_atel],
+                name=motif, orientation="h",
+                marker=dict(color=color, line_width=0),
+            )
+        # Ligne cible globale
+        fig_abs.add_vline(x=abs_cible, line=dict(color=GOLD, width=1.5, dash="dash"),
+                          annotation_text=f" Cible {abs_cible}%",
+                          annotation=dict(font=dict(color=GOLD, size=9)))
+        fig_abs.update_layout(**layout_dark(
+            height=265, barmode="stack",
+            xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       ticksuffix="%",
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="Taux d'absentéisme %", font=dict(color=TEXT3, size=10))),
+            yaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=11)),
+        ))
+        st.plotly_chart(fig_abs, width='stretch')
+
+    # ── Pyramide des âges + Répartition effectifs ─────────────────────────────
+    sec("Structure des effectifs")
+    py1, py2, py3 = st.columns([2, 1, 1])
+
+    with py1:
+        fig_pyr = go.Figure()
+        fig_pyr.add_bar(y=TRANCHES_AGE, x=-pyr_h, name="Hommes", orientation="h",
+                        marker=dict(color=BLUE, line_width=0),
+                        text=[f"{v}" for v in pyr_h],
+                        textposition="inside", textfont=dict(color=BG, size=10))
+        fig_pyr.add_bar(y=TRANCHES_AGE, x=pyr_f, name="Femmes", orientation="h",
+                        marker=dict(color=ORANGE, line_width=0),
+                        text=[f"{v}" for v in pyr_f],
+                        textposition="inside", textfont=dict(color=BG, size=10))
+        fig_pyr.update_layout(**layout_dark(
+            height=265, barmode="relative",
+            xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
+                       zerolinecolor=BORDER,
+                       tickvals=[-20, -15, -10, -5, 0, 5, 10, 15],
+                       ticktext=["20","15","10","5","0","5","10","15"],
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="← Hommes       Femmes →", font=dict(color=TEXT3, size=10))),
+            yaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=11)),
+            annotations=[dict(
+                text=f"Âge moyen : {sum((int(t.split('–')[0])+int(t.split('–')[1]) if '–' in t else 57)*v for t,v in zip(TRANCHES_AGE, pyr_h+pyr_f)) // (pyr_h+pyr_f).sum()} ans",
+                x=0.5, y=1.08, xref="paper", yref="paper",
+                showarrow=False, font=dict(size=9, color=TEXT2)
+            )]
+        ))
+        st.plotly_chart(fig_pyr, width='stretch')
+
+    with py2:
+        # Répartition par type de contrat (donut)
+        fig_cont = go.Figure(go.Pie(
+            labels=["CDI", "CDD", "Intérim"],
+            values=[int(eff_cdi.sum()), int(eff_cdd.sum()), int(eff_int.sum())],
+            hole=0.52,
+            marker=dict(colors=[GREEN, GOLD, ORANGE], line=dict(color=BG, width=2)),
+            textfont=dict(size=10, color=TEXT), textinfo="label+percent",
+        ))
+        fig_cont.add_annotation(text=f"<b>{eff_total}</b><br>ETP",
+                                x=0.5, y=0.5, showarrow=False,
+                                font=dict(size=13, color=TEXT, family="Inter, Arial"))
+        fig_cont.update_layout(
+            height=265, margin=dict(l=0, r=0, t=20, b=0),
+            paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+            font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
+        )
+        st.plotly_chart(fig_cont, width='stretch')
+
+    with py3:
+        # Répartition par catégorie
+        fig_cat = go.Figure(go.Pie(
+            labels=CATEGORIES, values=eff_cat.tolist(), hole=0.52,
+            marker=dict(colors=[TEAL, BLUE, PURPLE, GOLD], line=dict(color=BG, width=2)),
+            textfont=dict(size=10, color=TEXT), textinfo="label+percent",
+        ))
+        fig_cat.add_annotation(text="<b>Catégories</b>",
+                               x=0.5, y=0.5, showarrow=False,
+                               font=dict(size=10, color=TEXT2, family="Inter, Arial"))
+        fig_cat.update_layout(
+            height=265, margin=dict(l=0, r=0, t=20, b=0),
+            paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+            font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
+        )
+        st.plotly_chart(fig_cat, width='stretch')
+
+    # ── Sécurité + Formation + Heures sup ─────────────────────────────────────
+    sec("Sécurité, Formation & Heures supplémentaires")
+    sf1, sf2, sf3 = st.columns(3)
+
+    with sf1:
+        # Indicateurs sécurité (jauges)
+        fig_tf = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=tf_at,
+            number=dict(font=dict(size=46, color=RED if tf_at >= 15 else GREEN,
+                                  family="Inter, Arial"), valueformat=".1f"),
+            title=dict(
+                text=f"<b>Taux de Fréquence AT</b><br>"
+                     f"<span style='font-size:10px;color:{TEXT2};'>"
+                     f"Objectif &lt; 15 · {nb_at_ytd} AT avec arrêt YTD</span>",
+                font=dict(size=12, color=TEXT, family="Inter, Arial")
+            ),
+            gauge=dict(
+                axis=dict(range=[0, 40], tickwidth=1, tickcolor=TEXT3,
+                          nticks=5, tickfont=dict(color=TEXT3, size=9)),
+                bar=dict(color=RED if tf_at >= 15 else GREEN, thickness=0.3),
+                bgcolor=CARD2, borderwidth=1, bordercolor=BORDER,
+                steps=[
+                    dict(range=[0, 15],  color="#0F2318"),
+                    dict(range=[15, 25], color="#2A1A0A"),
+                    dict(range=[25, 40], color="#1F0D0D"),
+                ],
+                threshold=dict(line=dict(color=GOLD, width=3), thickness=0.85, value=15)
+            )
+        ))
+        fig_tf.update_layout(height=265, margin=dict(l=16, r=16, t=20, b=0),
+                             paper_bgcolor="rgba(0,0,0,0)",
+                             font=dict(family="Inter, Arial, sans-serif"))
+        st.plotly_chart(fig_tf, width='stretch')
+
+    with sf2:
+        # Formation — barres de progression HTML
+        pct_h   = h_form_real / h_form_plan * 100
+        pct_bdg = bdg_form_con / bdg_form_all * 100
+        pct_col = GREEN if pct_h >= 75 else (ORANGE if pct_h >= 50 else RED)
+        pct_bc  = GREEN if pct_bdg <= 90 else ORANGE
+
+        form_rows = [
+            ("Heures réalisées / planifiées",
+             f"{h_form_real}h / {h_form_plan}h", pct_h, pct_col),
+            ("Budget consommé / alloué",
+             f"{bdg_form_con:.1f} k€ / {bdg_form_all:.1f} k€", pct_bdg, pct_bc),
+            ("Formation / ETP",
+             f"{form_etp:.1f} h/pers", min(100, form_etp/10*100), TEAL),
+        ]
+        rows_html = ""
+        for label, valstr, pct, fc in form_rows:
+            rows_html += f"""
+<div style="margin-bottom:14px;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+    <span style="font-size:11px;color:{TEXT2};">{label}</span>
+    <span style="font-size:11px;font-weight:700;color:{TEXT};">{valstr}</span>
+  </div>
+  <div class="progress-bar-bg" style="height:6px;">
+    <div class="progress-bar-fill" style="width:{min(100,pct):.0f}%;background:{fc};height:6px;"></div>
+  </div>
+  <div style="font-size:9px;color:{TEXT3};text-align:right;margin-top:2px;">{pct:.0f}%</div>
+</div>"""
+
+        st.markdown(f"""
+<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+            padding:18px 20px;position:relative;overflow:hidden;height:265px;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;
+              background:linear-gradient(90deg,{PURPLE},{TEAL},transparent);"></div>
+  <div style="font-size:10px;font-weight:800;color:{PURPLE};text-transform:uppercase;
+              letter-spacing:1.8px;margin-bottom:16px;">Plan de formation YTD</div>
+  {rows_html}
+  <div style="font-size:9px;color:{TEXT3};margin-top:8px;">
+    Catégories prioritaires : Sécurité · Qualité · Maintenance préventive
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    with sf3:
+        # Heures supplémentaires par atelier
+        hs_vals = [hs_par_at[a] for a in ATELIERS]
+        fig_hs = go.Figure()
+        fig_hs.add_bar(
+            x=ATELIERS, y=hs_vals,
+            marker=dict(
+                color=[RED if v > 200 else (ORANGE if v > 100 else GREEN) for v in hs_vals],
+                line_width=0
+            ),
+            text=[f"{v} h" for v in hs_vals],
+            textposition="outside", textfont=dict(color=TEXT, size=11),
+            hovertemplate="%{x}<br>%{y} h sup.<extra></extra>"
+        )
+        fig_hs.update_layout(**layout_dark(
+            height=265, showlegend=False,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="Heures sup. YTD", font=dict(color=TEXT3, size=10))),
+            xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=11)),
+            annotations=[dict(
+                text=f"Total {hs_total} h · Coût estimé {cout_hs:.0f} k€",
+                x=0.5, y=1.08, xref="paper", yref="paper",
+                showarrow=False, font=dict(size=9, color=TEXT2)
+            )]
+        ))
+        st.plotly_chart(fig_hs, width='stretch')
+
+    # ── Évolution absentéisme mensuel ─────────────────────────────────────────
+    sec("Évolution du taux d'absentéisme global — 10 mois 2026")
+    fig_abm = go.Figure()
+    fig_abm.add_bar(
+        x=MOIS, y=abs_mensuel,
+        marker=dict(color=[RED if v > abs_cible else GREEN for v in abs_mensuel], line_width=0),
+        hovertemplate="%{x}<br>Absentéisme : %{y:.1f}%<extra></extra>"
+    )
+    fig_abm.add_hline(y=abs_cible, line=dict(color=GOLD, width=1.5, dash="dash"),
+                      annotation_text=f" Cible {abs_cible}%",
+                      annotation=dict(font=dict(color=GOLD, size=9)))
+    fig_abm.add_scatter(
+        x=MOIS,
+        y=[abs_mensuel[:i+1].mean() for i in range(len(MOIS))],
+        name="Moyenne YTD", mode="lines",
+        line=dict(color=TEAL, width=2, dash="dot")
+    )
+    fig_abm.update_layout(**layout_dark(
+        height=230,
+        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                   ticksuffix="%", range=[2, 7],
+                   tickfont=dict(color=TEXT2, size=10),
+                   title=dict(text="Taux %", font=dict(color=TEXT3, size=10))),
+        xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                   tickfont=dict(color=TEXT2, size=10)),
+    ))
+    st.plotly_chart(fig_abm, width='stretch')
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TAB 6 — ALERTES
+# ════════════════════════════════════════════════════════════════════════════════
+with tab6:
     sec("Alertes performance — semaine 45 · 3 nov. 2026")
 
     alertes = [
