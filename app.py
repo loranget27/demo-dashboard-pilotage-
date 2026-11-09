@@ -1038,9 +1038,8 @@ with tab3:
     # ── Bloc 4 : Coûts std vs réels par composante ───────────────────────────
     sec("Coût / kg — Standard vs Réel par composante et par atelier")
     cv1, cv2, cv3 = st.columns(3)
-    for col, (ai, atelier, acolor) in zip([cv1, cv2, cv3],
-                                           enumerate(zip(ATELIERS, ATEL_COLORS))):
-        atelier, acolor = atelier
+    for col, (ai, (atelier, acolor)) in zip([cv1, cv2, cv3],
+                                            enumerate(zip(ATELIERS, ATEL_COLORS))):
         std_vals  = [COUT_STD[c][ai]      for c in COMPOSANTES]
         reel_vals = [COUT_REEL_KG[c][ai]  for c in COMPOSANTES]
         total_std  = sum(std_vals)
