@@ -473,6 +473,8 @@ def layout_dark(height=280, **extra):
         legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0,
                     font=dict(size=10, color=TEXT2),
                     orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hoverlabel=dict(bgcolor=CARD, bordercolor=BORDER, font=dict(size=11, color=TEXT, family="Inter, Arial, sans-serif")),
+        modebar=dict(bgcolor="rgba(0,0,0,0)", color=TEXT3, activecolor=GOLD),
         xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False, tickfont=dict(color=TEXT2, size=10)),
         yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False, tickfont=dict(color=TEXT2, size=10)),
     )
@@ -660,7 +662,8 @@ with tab1:
     with t1a:
         fig1 = go.Figure()
         fig1.add_bar(x=MOIS, y=ca_tot_b, name="Budget",
-                     marker=dict(color=bar_colors_b, line_width=0), opacity=0.65)
+                     marker=dict(color=bar_colors_b, line_width=0), opacity=0.65,
+                     hovertemplate="<b>%{x}</b><br>Budget : %{y:.0f} k€<extra></extra>")
         fig1.add_bar(x=MOIS, y=ca_tot_r, name="Réel",
                      marker=dict(
                          color=bar_colors_r,
@@ -668,20 +671,24 @@ with tab1:
                                           for i in range(len(MOIS))], width=2),
                      ),
                      text=[f"{r/1000:.2f}M" for r in ca_tot_r],
-                     textposition="outside", textfont=dict(size=9, color=TEXT2))
+                     textposition="outside", textfont=dict(size=9, color=TEXT2),
+                     hovertemplate="<b>%{x}</b><br>Réel : %{y:.0f} k€<extra></extra>")
         fig1.add_scatter(x=MOIS, y=pct_r, name="% réalisation", yaxis="y2",
                          line=dict(color=GOLD, width=2.5),
                          mode="lines+markers",
+                         fill="tonexty", fillcolor="rgba(245,166,35,0.06)",
                          marker=dict(size=[12 if i == M_dir else 7 for i in range(len(MOIS))],
                                      color=[GREEN if p >= 100 else RED for p in pct_r],
                                      line=dict(color=BG, width=2)),
                          text=[f"{p:.1f}%" for p in pct_r],
                          textposition="top center",
-                         textfont=dict(size=8, color=GOLD))
+                         textfont=dict(size=8, color=GOLD),
+                         hovertemplate="<b>%{x}</b><br>Réalisation : <b>%{y:.1f}%</b><extra></extra>")
         # Ligne verticale sur le mois sélectionné
         fig1.add_vline(x=M_dir, line=dict(color=GOLD, width=1, dash="dot"), opacity=0.5)
         fig1.update_layout(**layout_dark(
             height=295, barmode="group",
+            title=dict(text="CA Réel vs Budget · 10 mois 2026", font=dict(size=11, color=TEXT3, family="Inter, Arial, sans-serif"), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€", font=dict(color=TEXT3, size=10))),
@@ -703,11 +710,13 @@ with tab1:
             ),
             text=[f"{e:+.0f}" for e in ecart_k],
             textposition="outside", textfont=dict(size=9, color=TEXT),
+            hovertemplate="<b>%{y}</b><br>Écart vs budget : <b>%{x:+.0f} k€</b><extra></extra>",
         ))
         fig_ec.add_vline(x=0, line=dict(color=BORDER, width=1))
         fig_ec.update_layout(**layout_dark(
             height=295, showlegend=False,
-            margin=dict(l=4, r=55, t=16, b=4),
+            title=dict(text="Écarts / Budget", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
+            margin=dict(l=4, r=55, t=28, b=4),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
                        zerolinecolor=BORDER,
                        tickfont=dict(color=TEXT2, size=9),
@@ -736,9 +745,14 @@ with tab1:
             marker=dict(color=bc, line_width=0),
             text=[f"{mg_sel[i]:.0f}%" for i in idx],
             textposition="outside", textfont=dict(color=TEXT, size=11),
+            hovertemplate="<b>%{y}</b><br>Taux de marge : <b>%{x:.1f}%</b><extra></extra>",
         ))
+        fig2.add_vline(x=35, line=dict(color=TEXT3, dash="dot", width=1.5))
+        fig2.add_annotation(x=36, y=-0.4, text="Moy. porte.", showarrow=False,
+                            font=dict(size=8, color=TEXT3), xanchor="left")
         fig2.update_layout(**layout_dark(
             height=265, showlegend=False,
+            title=dict(text="Taux de marge par gamme", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        range=[0, 70], ticksuffix="%", tickfont=dict(color=TEXT2, size=10)),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
@@ -759,10 +773,12 @@ with tab1:
             ),
             text=[f"{r:.0f}" for r in result_mensuel],
             textposition="outside", textfont=dict(size=8, color=TEXT2),
+            hovertemplate="<b>%{x}</b><br>Résultat : <b>%{y:.0f} k€</b><extra></extra>",
         )
         fig_res.add_hline(y=0, line=dict(color=BORDER, width=1))
         fig_res.update_layout(**layout_dark(
             height=265, showlegend=False,
+            title=dict(text="Résultat mensuel avant IS", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€", font=dict(color=TEXT3, size=9))),
@@ -778,7 +794,7 @@ with tab1:
             pull=pull_pie,
             marker=dict(colors=PIE_COLORS, line=dict(color=BG, width=2)),
             textfont=dict(size=10, color=TEXT), textinfo="label+percent",
-            hovertemplate="<b>%{label}</b><br>%{value:.0f} k€ · %{percent}<extra></extra>"
+            hovertemplate="<b>%{label}</b><br>CA : %{value:.0f} k€<br>Part : %{percent:.1%}<extra></extra>",
         ))
         fig3.add_annotation(
             text=f"<b>{ca_reel[:,M_dir].sum()/1000:.1f}</b><br>M€",
@@ -788,6 +804,7 @@ with tab1:
         fig3.update_layout(
             height=265, margin=dict(l=0, r=0, t=16, b=0),
             paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+            hoverlabel=dict(bgcolor=CARD, bordercolor=BORDER, font=dict(size=11, color=TEXT, family="Inter, Arial, sans-serif")),
             font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
         )
         st.plotly_chart(fig3, width='stretch')
@@ -2026,16 +2043,20 @@ unsafe_allow_html=True)
             x=MOIS, y=_cacao_idx, name="Cacao (index)",
             line=dict(color=GOLD, width=2.5), mode="lines+markers",
             marker=dict(size=6, color=GOLD),
-            fill="tozeroy", fillcolor="rgba(245,166,35,0.07)"
+            fill="tozeroy", fillcolor="rgba(245,166,35,0.10)",
+            hovertemplate="<b>%{x}</b><br>Cacao : index %{y:.1f}<extra></extra>",
         )
         fig_cours.add_scatter(
             x=MOIS, y=_sucre_idx, name="Sucre brut (index)",
             line=dict(color=TEAL, width=2), mode="lines+markers",
-            marker=dict(size=5, color=TEAL)
+            marker=dict(size=5, color=TEAL),
+            hovertemplate="<b>%{x}</b><br>Sucre : index %{y:.1f}<extra></extra>",
         )
         fig_cours.add_scatter(
             x=MOIS, y=_fret_idx, name="Fret maritime (index)",
             line=dict(color=ORANGE, width=2, dash="dash"), mode="lines",
+            fill="tozeroy", fillcolor="rgba(249,115,22,0.05)",
+            hovertemplate="<b>%{x}</b><br>Fret : index %{y:.1f}<extra></extra>",
         )
         fig_cours.add_hline(
             y=100,
@@ -2044,8 +2065,14 @@ unsafe_allow_html=True)
             annotation_position="top left",
             annotation_font=dict(color=TEXT3, size=9)
         )
+        fig_cours.add_annotation(
+            x="Oct", y=113, text="+11% cacao", showarrow=False,
+            font=dict(size=9, color=GOLD), xanchor="right",
+            bgcolor=CARD2, bordercolor=BORDER, borderwidth=1,
+        )
         fig_cours.update_layout(**layout_dark(
             height=285,
+            title=dict(text="Évolution des cours vs prix d'engagement (base 100 = janv.)", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10), range=[90, 128],
                        title=dict(text="Index (100 = engagement)", font=dict(color=TEXT3, size=9))),
@@ -2062,17 +2089,22 @@ unsafe_allow_html=True)
 
         fig_pr = go.Figure()
         fig_pr.add_bar(x=MATIERES_MP, y=c_engage,  name="Prix engagé (k€)",
-                       marker=dict(color=GOLD, line_width=0))
+                       marker=dict(color=GOLD, line_width=0),
+                       hovertemplate="<b>%{x}</b><br>Prix engagé : %{y:.0f} k€<extra></extra>")
         fig_pr.add_bar(x=MATIERES_MP, y=c_log_bud, name="Fret budgété (k€)",
-                       marker=dict(color=TEAL, line_width=0, opacity=0.85))
+                       marker=dict(color=TEAL, line_width=0, opacity=0.85),
+                       hovertemplate="<b>%{x}</b><br>Fret budgété : %{y:.0f} k€<extra></extra>")
         fig_pr.add_bar(x=MATIERES_MP, y=c_log_sc,  name="Surcoût fret actuel (k€)",
-                       marker=dict(color=ORANGE, line_width=0))
+                       marker=dict(color=ORANGE, line_width=0),
+                       hovertemplate="<b>%{x}</b><br>Surcoût fret : %{y:.0f} k€<extra></extra>")
         fig_pr.add_bar(x=MATIERES_MP, y=c_eco,     name="Économie vs spot (k€)",
                        marker=dict(color=GREEN, line_width=0, opacity=0.6),
                        text=[f"+{v:.0f}" if v > 0 else "" for v in c_eco],
-                       textposition="outside", textfont=dict(size=9, color=GREEN))
+                       textposition="outside", textfont=dict(size=9, color=GREEN),
+                       hovertemplate="<b>%{x}</b><br>Économie réalisée : +%{y:.0f} k€<extra></extra>")
         fig_pr.update_layout(**layout_dark(
             height=285, barmode="stack",
+            title=dict(text="Coût matières annuel — engagé + logistique + économie réalisée", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€ / an", font=dict(color=TEXT3, size=10))),
@@ -2142,6 +2174,7 @@ unsafe_allow_html=True)
         ))
         fig_wf.update_layout(**layout_dark(
             height=265, showlegend=False,
+            title=dict(text="Impact sur budget matières N+1 — Campagne 2027", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             margin=dict(l=4, r=4, t=28, b=4),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
