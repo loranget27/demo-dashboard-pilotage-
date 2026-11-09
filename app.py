@@ -34,20 +34,15 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 *, *::before, *::after {{ box-sizing: border-box; }}
-
-html, body,
-[data-testid="stAppViewContainer"],
-[data-testid="stMain"],
-.stMainBlockContainer {{
+html, body, [data-testid="stAppViewContainer"],
+[data-testid="stMain"], .stMainBlockContainer {{
     background: {BG} !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }}
-[data-testid="stHeader"]  {{ background: transparent !important; box-shadow: none !important; }}
+[data-testid="stHeader"]     {{ background: transparent !important; box-shadow: none !important; }}
 [data-testid="stDecoration"] {{ display: none; }}
 .block-container {{ padding: 1.2rem 2rem 2rem !important; }}
 section[data-testid="stSidebar"] {{ background: {CARD} !important; }}
-
-/* Scrollbar */
 ::-webkit-scrollbar {{ width: 5px; }}
 ::-webkit-scrollbar-track {{ background: {CARD}; }}
 ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 4px; }}
@@ -57,118 +52,88 @@ section[data-testid="stSidebar"] {{ background: {CARD} !important; }}
     background: {CARD} !important;
     border: 1px solid {BORDER} !important;
     border-radius: 10px !important;
-    padding: 5px !important;
-    gap: 3px !important;
+    padding: 5px !important; gap: 3px !important;
 }}
 button[data-baseweb="tab"] {{
     color: {TEXT2} !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    border-radius: 7px !important;
-    letter-spacing: .4px !important;
-    padding: 8px 20px !important;
-    transition: all .2s ease !important;
+    font-size: 12px !important; font-weight: 600 !important;
+    border-radius: 7px !important; letter-spacing: .4px !important;
+    padding: 8px 18px !important; transition: all .2s ease !important;
 }}
 button[aria-selected="true"] {{
     background: linear-gradient(135deg, {GOLD} 0%, {GOLD2} 100%) !important;
-    color: #080D18 !important;
-    font-weight: 800 !important;
+    color: #080D18 !important; font-weight: 800 !important;
     box-shadow: 0 4px 15px rgba(245,166,35,.3) !important;
 }}
-[data-testid="stTabsContent"] {{
-    background: transparent !important;
-    border: none !important;
-    padding-top: 0 !important;
-}}
-
-/* Masquer st.metric natif */
+[data-testid="stTabsContent"] {{ background: transparent !important; border: none !important; padding-top: 0 !important; }}
 div[data-testid="metric-container"] {{ display: none !important; }}
 
 /* Cartes KPI */
 .kpi {{
-    background: {CARD};
-    border: 1px solid {BORDER};
-    border-radius: 14px;
-    padding: 20px 20px 16px;
-    position: relative;
-    overflow: hidden;
-    height: 108px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    background: {CARD}; border: 1px solid {BORDER}; border-radius: 14px;
+    padding: 20px 20px 16px; position: relative; overflow: hidden;
+    height: 108px; display: flex; flex-direction: column; justify-content: space-between;
 }}
 .kpi-top {{
     position: absolute; top: 0; left: 0; right: 0; height: 2px;
     border-radius: 14px 14px 0 0;
 }}
-.kpi-glow {{
-    position: absolute; top: 0; left: 0; right: 0; height: 60px;
-    pointer-events: none;
-}}
-.kpi-icon {{
-    position: absolute; top: 14px; right: 16px;
-    font-size: 22px; opacity: .12;
-}}
-.kpi-label {{
-    font-size: 10px; font-weight: 700; color: {TEXT2};
-    text-transform: uppercase; letter-spacing: 1.4px;
-}}
-.kpi-val {{
-    font-size: 26px; font-weight: 900; color: {TEXT};
-    line-height: 1; letter-spacing: -.5px;
-}}
+.kpi-glow {{ position: absolute; top: 0; left: 0; right: 0; height: 60px; pointer-events: none; }}
+.kpi-icon {{ position: absolute; top: 14px; right: 16px; font-size: 22px; opacity: .12; }}
+.kpi-label {{ font-size: 10px; font-weight: 700; color: {TEXT2}; text-transform: uppercase; letter-spacing: 1.4px; }}
+.kpi-val {{ font-size: 26px; font-weight: 900; color: {TEXT}; line-height: 1; letter-spacing: -.5px; }}
 .kpi-delta {{ font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }}
 
+/* Cartes KPI cost — hauteur étendue */
+.kpi-cost {{
+    background: {CARD}; border: 1px solid {BORDER}; border-radius: 14px;
+    padding: 16px 18px; position: relative; overflow: hidden;
+}}
+.kpi-cost-top {{ position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 14px 14px 0 0; }}
+.kpi-cost-label {{ font-size: 10px; font-weight: 700; color: {TEXT2}; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px; }}
+.kpi-cost-val {{ font-size: 24px; font-weight: 900; color: {TEXT}; line-height: 1; }}
+.kpi-cost-row {{ font-size: 11px; color: {TEXT2}; margin-top: 6px; display: flex; gap: 10px; align-items: center; }}
+.kpi-cost-badge {{
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px;
+}}
+.progress-bar-bg {{
+    height: 4px; background: {BORDER}; border-radius: 2px; margin-top: 8px; overflow: hidden;
+}}
+.progress-bar-fill {{ height: 100%; border-radius: 2px; transition: width .4s ease; }}
+
 /* En-têtes de section */
-.sh {{
-    display: flex; align-items: center; gap: 12px;
-    margin: 22px 0 12px 0;
-}}
-.sh-dot {{
-    width: 6px; height: 6px; border-radius: 50%;
-    background: {GOLD};
-    box-shadow: 0 0 8px {GOLD};
-    flex-shrink: 0;
-}}
-.sh-title {{
-    font-size: 10px; font-weight: 800; color: {GOLD};
-    text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
-}}
-.sh-line {{
-    flex: 1; height: 1px;
-    background: linear-gradient(90deg, {BORDER} 0%, transparent 100%);
-}}
+.sh {{ display: flex; align-items: center; gap: 12px; margin: 22px 0 12px 0; }}
+.sh-dot {{ width: 6px; height: 6px; border-radius: 50%; background: {GOLD}; box-shadow: 0 0 8px {GOLD}; flex-shrink: 0; }}
+.sh-title {{ font-size: 10px; font-weight: 800; color: {GOLD}; text-transform: uppercase; letter-spacing: 2px; white-space: nowrap; }}
+.sh-line {{ flex: 1; height: 1px; background: linear-gradient(90deg, {BORDER} 0%, transparent 100%); }}
 
 /* Cartes alertes */
-.al {{
-    background: {CARD}; border: 1px solid {BORDER};
-    border-left: 3px solid; border-radius: 10px;
-    padding: 14px 18px; margin-bottom: 10px;
-}}
+.al {{ background: {CARD}; border: 1px solid {BORDER}; border-left: 3px solid; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }}
 .al-row {{ font-size: 11px; color: {TEXT2}; margin-top: 4px; line-height: 1.65; }}
 .al-row b {{ color: {TEXT}; font-weight: 600; }}
-.al-badge {{
-    font-size: 10px; font-weight: 700;
-    padding: 3px 10px; border-radius: 20px;
-    text-transform: uppercase; letter-spacing: .8px;
-}}
-.al-resp {{
-    display: inline-block; margin-top: 8px;
-    font-size: 10px; font-weight: 600; color: {GOLD};
-    background: rgba(245,166,35,.08);
-    border: 1px solid rgba(245,166,35,.2);
-    padding: 2px 10px; border-radius: 20px;
-}}
+.al-badge {{ font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .8px; }}
+.al-resp {{ display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 600; color: {GOLD}; background: rgba(245,166,35,.08); border: 1px solid rgba(245,166,35,.2); padding: 2px 10px; border-radius: 20px; }}
 
-.disc {{
-    font-size: 9px; color: {TEXT3}; text-align: right;
-    margin-top: 4px; letter-spacing: .3px;
+/* Tableau fiscal */
+.fisc-table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
+.fisc-table th {{
+    font-size: 10px; font-weight: 700; color: {TEXT3}; text-transform: uppercase;
+    letter-spacing: 1px; padding: 8px 12px; text-align: left;
+    border-bottom: 1px solid {BORDER};
 }}
+.fisc-table td {{ padding: 9px 12px; color: {TEXT2}; border-bottom: 1px solid {BORDER}; }}
+.fisc-table tr:last-child td {{ border-bottom: none; }}
+.fisc-table tr:hover td {{ background: {CARD2}; }}
+.fisc-sep td {{ background: {CARD2} !important; font-weight: 700 !important; color: {TEXT} !important; font-size: 11px !important; }}
+.fisc-total td {{ font-weight: 800 !important; color: {TEXT} !important; font-size: 13px !important; border-top: 2px solid {BORDER} !important; }}
+
+.disc {{ font-size: 9px; color: {TEXT3}; text-align: right; margin-top: 4px; letter-spacing: .3px; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Données (seed fixe) ───────────────────────────────────────────────────────
+# ── Données production (seed fixe) ───────────────────────────────────────────
 np.random.seed(42)
 
 GAMMES      = ["Chocolat Noir", "Chocolat Lait", "Sucre Roux", "Sucre Blanc", "Sirops", "Rhum Arrangé"]
@@ -203,9 +168,11 @@ trs = np.array([
 
 cout_pct   = np.array([[42,18,12,8,6],[38,16,15,7,5],[22,25,8,18,4]], dtype=float)
 cout_total = np.array([185.0, 210.0, 95.0])
-cout_kg_base = {"Chocolaterie": 4.2, "Sucrerie": 1.8, "Conditionnement": 0.9}
+
+cout_kg_cible = {"Chocolaterie": 4.10, "Sucrerie": 1.75, "Conditionnement": 0.90}
+cout_kg_base  = {"Chocolaterie": 4.2,  "Sucrerie": 1.8,  "Conditionnement": 0.9}
 cout_kg = {
-    a: [base * (1 + np.random.uniform(-0.03, 0.04)) for _ in MOIS]
+    a: [base * (1 + np.random.uniform(-0.03, 0.05) + i * 0.002) for i, _ in enumerate(MOIS)]
     for a, base in cout_kg_base.items()
 }
 
@@ -219,15 +186,40 @@ taux_mg_moy = marge_brute / ca_mtd * 100
 trs_moy     = trs[:, M].mean()
 prev_mg     = (ca_reel[:, M-1] * taux_marge[:, M-1] / 100).sum() / ca_reel[:, M-1].sum() * 100
 
+# ── Données fiscales fictives (YTD Jan–Oct 2026) ─────────────────────────────
+masse_sal_ytd         = 1_240.0   # k€
+charges_pat_brut      = masse_sal_ytd * 0.42
+exo_lodeom            = charges_pat_brut * 0.35   # Loi LODEOM (DOM)
+charges_pat_nettes    = charges_pat_brut - exo_lodeom
+
+ebitda_ytd            = ca_ytd / 1000 * 0.182     # ~18% EBITDA
+amortissements        = 185.0
+charges_fin           = 42.0
+result_comptable      = ebitda_ytd - amortissements - charges_fin
+reint_non_ded         = 28.0    # charges non déductibles à réintégrer
+prov_deductible       = 35.0    # provisions déductibles
+abat_dom              = 80.0    # abattement spécifique DOM art. 44 quaterdecies CGI
+result_fiscal         = result_comptable + reint_non_ded - prov_deductible - abat_dom
+is_brut               = max(0, result_fiscal * 0.25)
+cir                   = 32.0    # Crédit Impôt Recherche
+is_net                = max(0, is_brut - cir)
+taux_effectif_is      = is_net / max(1, result_comptable) * 100
+
+result_mensuel = np.array([
+    ebitda_ytd / 10 * (1 + np.random.uniform(-0.08, 0.10)) -
+    amortissements / 10 - charges_fin / 10
+    for _ in MOIS
+])
+
 ATEL_COLORS = [GOLD, TEAL, GREEN]
 PIE_COLORS  = [GOLD, TEAL, BLUE, GREEN, ORANGE, PURPLE]
 COMP_COLORS = [RED, TEAL, ORANGE, GOLD, TEXT3]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def kpi(label, val, delta, icon, up, color=GOLD):
-    dc = GREEN if up else RED
+    dc    = GREEN if up else RED
     arrow = "▲" if up else "▼"
-    glow = f"background: radial-gradient(ellipse at top, {color}18 0%, transparent 70%);"
+    glow  = f"background: radial-gradient(ellipse at top, {color}18 0%, transparent 70%);"
     return f"""
 <div class="kpi">
   <div class="kpi-top" style="background:{color};"></div>
@@ -236,6 +228,27 @@ def kpi(label, val, delta, icon, up, color=GOLD):
   <div class="kpi-label">{label}</div>
   <div class="kpi-val">{val}</div>
   <div class="kpi-delta" style="color:{dc};">{arrow}&nbsp;{delta}</div>
+</div>"""
+
+def kpi_cost(label, val_str, cible_str, ecart_pct, unit, color=GOLD):
+    up     = ecart_pct <= 0
+    ec_col = GREEN if up else RED
+    ec_lbl = f"{ecart_pct:+.1f}%"
+    pct_fill = min(100, max(0, 100 - abs(ecart_pct) * 2))
+    fill_col = GREEN if up else RED
+    badge_bg = f"rgba(34,197,94,.12)" if up else f"rgba(239,68,68,.12)"
+    return f"""
+<div class="kpi-cost">
+  <div class="kpi-cost-top" style="background:{color};"></div>
+  <div class="kpi-cost-label">{label}</div>
+  <div class="kpi-cost-val">{val_str}</div>
+  <div class="kpi-cost-row">
+    <span style="color:{TEXT3};">Cible : {cible_str}</span>
+    <span class="kpi-cost-badge" style="background:{badge_bg};color:{ec_col};">{ec_lbl}</span>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" style="width:{pct_fill}%;background:{fill_col};"></div>
+  </div>
 </div>"""
 
 def sec(title):
@@ -248,24 +261,14 @@ def sec(title):
 
 def layout_dark(height=280, **extra):
     base = dict(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor=CARD2,
-        height=height,
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor=CARD2, height=height,
         margin=dict(l=4, r=4, t=16, b=4),
         font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)", borderwidth=0,
-            font=dict(size=10, color=TEXT2),
-            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
-        ),
-        xaxis=dict(
-            gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-            tickfont=dict(color=TEXT2, size=10)
-        ),
-        yaxis=dict(
-            gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-            tickfont=dict(color=TEXT2, size=10)
-        ),
+        legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0,
+                    font=dict(size=10, color=TEXT2),
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False, tickfont=dict(color=TEXT2, size=10)),
+        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False, tickfont=dict(color=TEXT2, size=10)),
     )
     base.update(extra)
     return base
@@ -284,13 +287,11 @@ with hc1:
               border-radius:11px;display:flex;align-items:center;justify-content:center;
               font-size:22px;box-shadow:0 4px 16px rgba(245,166,35,.4);">⚙️</div>
   <div>
-    <div style="font-size:18px;font-weight:900;color:{TEXT};
-                letter-spacing:.4px;font-family:'Inter',sans-serif;">
+    <div style="font-size:18px;font-weight:900;color:{TEXT};letter-spacing:.4px;">
       ÎLE SUCRÉE INDUSTRIES
     </div>
     <div style="font-size:11px;color:{TEXT2};margin-top:2px;letter-spacing:.2px;">
-      Tableau de bord de pilotage de la performance industrielle
-      &nbsp;·&nbsp; La Réunion
+      Tableau de bord de pilotage de la performance industrielle · La Réunion
     </div>
   </div>
   <div style="margin-left:auto;display:flex;gap:20px;align-items:center;">
@@ -305,8 +306,8 @@ with hc1:
     </div>
     <div style="width:1px;height:30px;background:{BORDER};"></div>
     <div style="text-align:center;">
-      <div style="font-size:9px;color:{TEXT3};text-transform:uppercase;letter-spacing:1px;">Marge</div>
-      <div style="font-size:14px;font-weight:800;color:{GREEN};">{taux_mg_moy:.1f}%</div>
+      <div style="font-size:9px;color:{TEXT3};text-transform:uppercase;letter-spacing:1px;">IS estimé</div>
+      <div style="font-size:14px;font-weight:800;color:{PURPLE};">{is_net:.0f} k€</div>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
@@ -319,9 +320,7 @@ with hc2:
             display:flex;flex-direction:column;justify-content:center;">
   <div style="position:absolute;top:0;left:0;right:0;height:2px;
               background:linear-gradient(90deg,transparent,{GOLD});"></div>
-  <div style="font-size:9px;color:{TEXT3};text-transform:uppercase;letter-spacing:1px;">
-    Arrêté au
-  </div>
+  <div style="font-size:9px;color:{TEXT3};text-transform:uppercase;letter-spacing:1px;">Arrêté au</div>
   <div style="font-size:15px;font-weight:800;color:{TEXT};margin:3px 0 1px;">Octobre 2026</div>
   <div style="font-size:9px;color:{TEXT3};">YTD Jan–Oct 2026</div>
 </div>""", unsafe_allow_html=True)
@@ -332,9 +331,10 @@ st.markdown(
 )
 
 # ── Onglets ───────────────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "  📊  Vue Direction  ",
     "  ⚙️  Production & Coûts  ",
+    "  🏛  Fiscalité  ",
     "  🔔  Alertes  "
 ])
 
@@ -371,10 +371,8 @@ with tab1:
     fig1.add_bar(x=MOIS, y=ca_tot_b, name="Budget",
                  marker=dict(color=BORDER, line_width=0), opacity=0.7)
     fig1.add_bar(x=MOIS, y=ca_tot_r, name="Réel",
-                 marker=dict(
-                     color=[GREEN if r >= b else RED for r, b in zip(ca_tot_r, ca_tot_b)],
-                     line_width=0
-                 ))
+                 marker=dict(color=[GREEN if r >= b else RED for r, b in zip(ca_tot_r, ca_tot_b)],
+                             line_width=0))
     fig1.add_scatter(x=MOIS, y=pct_r, name="% réalisation", yaxis="y2",
                      line=dict(color=GOLD, width=2.5, dash="dot"),
                      mode="lines+markers",
@@ -394,7 +392,7 @@ with tab1:
     ca1, ca2 = st.columns(2)
     with ca1:
         sec("Taux de marge par gamme — Oct 2026")
-        mg = taux_marge[:, M]
+        mg  = taux_marge[:, M]
         idx = np.argsort(mg)
         bc  = [GREEN if mg[i] >= 40 else (GOLD if mg[i] >= 30 else RED) for i in idx]
         fig2 = go.Figure(go.Bar(
@@ -406,8 +404,7 @@ with tab1:
         fig2.update_layout(**layout_dark(
             height=255, showlegend=False,
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                       range=[0, 70], ticksuffix="%",
-                       tickfont=dict(color=TEXT2, size=10)),
+                       range=[0, 70], ticksuffix="%", tickfont=dict(color=TEXT2, size=10)),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10)),
         ))
@@ -422,7 +419,7 @@ with tab1:
             hovertemplate="<b>%{label}</b><br>%{value:.0f} k€ · %{percent}<extra></extra>"
         ))
         fig3.add_annotation(
-            text=f"<b style='font-size:16px'>{ca_reel[:,M].sum()/1000:.1f}</b><br>M€",
+            text=f"<b>{ca_reel[:,M].sum()/1000:.1f}</b><br>M€",
             x=0.5, y=0.5, showarrow=False,
             font=dict(size=13, color=TEXT, family="Inter, Arial")
         )
@@ -438,36 +435,27 @@ with tab1:
 # ════════════════════════════════════════════════════════════════════════════════
 with tab2:
     sec("TRS par atelier — Octobre 2026")
-
     g1, g2, g3 = st.columns(3)
     for col, ci, (atelier, cible, acolor) in zip(
         [g1, g2, g3], range(3), zip(ATELIERS, trs_cible, ATEL_COLORS)
     ):
-        val = trs[ci, M]
+        val    = trs[ci, M]
         gcolor = GREEN if val >= cible + 3 else (GOLD if val >= cible else RED)
-        fig_g = go.Figure(go.Indicator(
+        fig_g  = go.Figure(go.Indicator(
             mode="gauge+number+delta",
             value=val,
-            delta=dict(
-                reference=cible, relative=False,
-                increasing=dict(color=GREEN), decreasing=dict(color=RED),
-                font=dict(size=13, family="Inter, Arial")
-            ),
-            number=dict(
-                suffix="%",
-                font=dict(size=34, color=TEXT, family="Inter, Arial"),
-            ),
+            delta=dict(reference=cible, relative=False,
+                       increasing=dict(color=GREEN), decreasing=dict(color=RED),
+                       font=dict(size=13, family="Inter, Arial")),
+            number=dict(suffix="%", font=dict(size=34, color=TEXT, family="Inter, Arial")),
             title=dict(
                 text=f"<b>{atelier}</b>"
                      f"<br><span style='font-size:11px;color:{TEXT2};'>Cible {cible:.0f}%</span>",
                 font=dict(size=14, color=TEXT, family="Inter, Arial")
             ),
             gauge=dict(
-                axis=dict(
-                    range=[60, 100], tickwidth=1,
-                    tickcolor=TEXT3, nticks=5,
-                    tickfont=dict(color=TEXT3, size=9)
-                ),
+                axis=dict(range=[60, 100], tickwidth=1, tickcolor=TEXT3,
+                          nticks=5, tickfont=dict(color=TEXT3, size=9)),
                 bar=dict(color=gcolor, thickness=0.28),
                 bgcolor=CARD2, borderwidth=1, bordercolor=BORDER,
                 steps=[
@@ -475,10 +463,7 @@ with tab2:
                     dict(range=[70, cible], color="#131E2E"),
                     dict(range=[cible, 100], color="#0F2318"),
                 ],
-                threshold=dict(
-                    line=dict(color=acolor, width=3),
-                    thickness=0.85, value=cible
-                )
+                threshold=dict(line=dict(color=acolor, width=3), thickness=0.85, value=cible)
             )
         ))
         fig_g.update_layout(
@@ -489,45 +474,65 @@ with tab2:
         with col:
             st.plotly_chart(fig_g, width='stretch')
 
-    sec("Évolution TRS mensuel par atelier")
-    fig4 = go.Figure()
-    for ci, (atelier, acolor, cible) in enumerate(zip(ATELIERS, ATEL_COLORS, trs_cible)):
-        fig4.add_scatter(
-            x=MOIS, y=trs[ci], name=atelier,
-            line=dict(color=acolor, width=2.5),
-            mode="lines+markers",
-            marker=dict(size=7, color=acolor, line=dict(color=BG, width=2))
+    # ── Coût/kg KPI cards ──────────────────────────────────────────────────────
+    sec("Coût de production / kg — Octobre 2026")
+    ck1, ck2, ck3 = st.columns(3)
+    for col, (atelier, acolor) in zip([ck1, ck2, ck3], zip(ATELIERS, ATEL_COLORS)):
+        val_kg    = cout_kg[atelier][M]
+        cible_kg  = cout_kg_cible[atelier]
+        ecart_pct = (val_kg - cible_kg) / cible_kg * 100
+        with col:
+            st.markdown(
+                kpi_cost(f"Coût/kg — {atelier}", f"{val_kg:.2f} €/kg",
+                         f"{cible_kg:.2f} €/kg", ecart_pct, "€/kg", acolor),
+                unsafe_allow_html=True
+            )
+
+    # ── Évolution coût/kg avec zone cible ─────────────────────────────────────
+    sec("Évolution coût / kg — 10 mois 2026")
+    fig_ck = go.Figure()
+    for atelier, acolor in zip(ATELIERS, ATEL_COLORS):
+        vals = cout_kg[atelier]
+        cible = cout_kg_cible[atelier]
+        fig_ck.add_scatter(
+            x=MOIS, y=vals, name=atelier,
+            line=dict(color=acolor, width=2.5), mode="lines+markers",
+            marker=dict(size=7, color=[RED if v > cible * 1.03 else acolor for v in vals],
+                        line=dict(color=BG, width=2)),
+            hovertemplate=f"{atelier}<br>%{{y:.3f}} €/kg<extra></extra>"
         )
-        fig4.add_shape(
+        fig_ck.add_shape(
             type="line", x0=0, x1=1, xref="paper",
             y0=cible, y1=cible,
-            line=dict(color=acolor, width=1, dash="dot")
+            line=dict(color=acolor, width=1.5, dash="dash")
         )
-        fig4.add_annotation(
-            x=MOIS[-1], y=cible, text=f"  {cible:.0f}%",
+        fig_ck.add_annotation(
+            x=MOIS[-1], y=cible, text=f"  cible {cible:.2f}",
             xanchor="left", showarrow=False,
             font=dict(size=9, color=acolor)
         )
-    fig4.update_layout(**layout_dark(
-        height=255, margin=dict(l=4, r=50, t=16, b=4),
+    fig_ck.update_layout(**layout_dark(
+        height=270, margin=dict(l=4, r=80, t=16, b=4),
         yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                   range=[60, 100], ticksuffix="%",
                    tickfont=dict(color=TEXT2, size=10),
-                   title=dict(text="TRS %", font=dict(color=TEXT3, size=10))),
+                   title=dict(text="€/kg", font=dict(color=TEXT3, size=10))),
         xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                    tickfont=dict(color=TEXT2, size=10)),
     ))
-    st.plotly_chart(fig4, width='stretch')
+    st.plotly_chart(fig_ck, width='stretch')
 
+    # ── Décomposition coûts + TRS trend ───────────────────────────────────────
     pa1, pa2 = st.columns(2)
     with pa1:
         sec("Décomposition des coûts par atelier (k€)")
         fig5 = go.Figure()
         for ci, (comp, cc) in enumerate(zip(COMPOSANTES, COMP_COLORS)):
+            vals_comp = [cout_total[ai] * cout_pct[ai, ci] / 100 for ai in range(3)]
             fig5.add_bar(
-                x=ATELIERS,
-                y=[cout_total[ai] * cout_pct[ai, ci] / 100 for ai in range(3)],
-                name=comp, marker=dict(color=cc, line_width=0)
+                x=ATELIERS, y=vals_comp, name=comp,
+                marker=dict(color=cc, line_width=0),
+                text=[f"{v:.0f}" for v in vals_comp],
+                textposition="inside", textfont=dict(size=9, color=BG)
             )
         fig5.update_layout(**layout_dark(
             height=265, barmode="stack",
@@ -540,59 +545,270 @@ with tab2:
         st.plotly_chart(fig5, width='stretch')
 
     with pa2:
-        sec("Coût de production / kg — 10 mois 2026")
-        fig6 = go.Figure()
-        for atelier, acolor in zip(ATELIERS, ATEL_COLORS):
-            fig6.add_scatter(
-                x=MOIS, y=cout_kg[atelier], name=atelier,
-                line=dict(color=acolor, width=2.5),
-                mode="lines+markers",
-                marker=dict(size=6, color=acolor, line=dict(color=BG, width=2)),
-                hovertemplate=f"{atelier}<br>%{{y:.2f}} €/kg<extra></extra>"
+        sec("Évolution TRS mensuel par atelier")
+        fig4 = go.Figure()
+        for ci, (atelier, acolor, cible) in enumerate(zip(ATELIERS, ATEL_COLORS, trs_cible)):
+            fig4.add_scatter(
+                x=MOIS, y=trs[ci], name=atelier,
+                line=dict(color=acolor, width=2.5), mode="lines+markers",
+                marker=dict(size=7, color=acolor, line=dict(color=BG, width=2))
             )
-        fig6.update_layout(**layout_dark(
-            height=265,
+            fig4.add_shape(type="line", x0=0, x1=1, xref="paper",
+                           y0=cible, y1=cible,
+                           line=dict(color=acolor, width=1, dash="dot"))
+        fig4.update_layout(**layout_dark(
+            height=265, margin=dict(l=4, r=50, t=16, b=4),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       range=[60, 100], ticksuffix="%",
                        tickfont=dict(color=TEXT2, size=10),
-                       title=dict(text="€/kg", font=dict(color=TEXT3, size=10))),
+                       title=dict(text="TRS %", font=dict(color=TEXT3, size=10))),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10)),
         ))
-        st.plotly_chart(fig6, width='stretch')
+        st.plotly_chart(fig4, width='stretch')
 
 # ════════════════════════════════════════════════════════════════════════════════
-# TAB 3 — ALERTES
+# TAB 3 — FISCALITÉ
 # ════════════════════════════════════════════════════════════════════════════════
 with tab3:
+    sec("Indicateurs fiscaux — YTD Jan–Oct 2026")
+
+    f1, f2, f3, f4 = st.columns(4)
+    fisc_kpis = [
+        (f1, "Résultat comptable", f"{result_comptable:.0f} k€",
+         f"{result_comptable/ca_ytd*100:.1f}% du CA YTD",
+         result_comptable > 0, "📋", BLUE),
+        (f2, "IS estimé (net)", f"{is_net:.0f} k€",
+         f"Taux effectif {taux_effectif_is:.1f}%",
+         taux_effectif_is < 20, "🏛", PURPLE),
+        (f3, "Économies LODEOM", f"{exo_lodeom:.0f} k€",
+         "Exonérations charges DOM",
+         True, "🌴", TEAL),
+        (f4, "CIR — Crédit Impôt Rech.", f"{cir:.0f} k€",
+         "Déduit de l'IS brut",
+         True, "🔬", GREEN),
+    ]
+    for col, label, val, delta, up, icon, color in fisc_kpis:
+        with col:
+            st.markdown(kpi(label, val, delta, icon, up, color), unsafe_allow_html=True)
+
+    # ── Waterfall calcul IS ────────────────────────────────────────────────────
+    sec("Calcul de l'impôt sur les sociétés — cascade de détermination")
+
+    wf_labels  = [
+        "Résultat\ncomptable",
+        "Réintégrations\nnon déductibles",
+        "Provisions\ndéductibles",
+        "Abattement\nDOM (art. 44)",
+        "Résultat\nfiscal",
+        "IS brut\n(25%)",
+        "Crédit\nImpôt Rech.",
+        "IS NET\ndû"
+    ]
+    wf_values  = [
+        result_comptable,
+        reint_non_ded,
+        -prov_deductible,
+        -abat_dom,
+        0,          # résultat fiscal = total intermédiaire
+        -is_brut,
+        cir,
+        0           # IS net = total final
+    ]
+    wf_measures = [
+        "absolute",
+        "relative",
+        "relative",
+        "relative",
+        "total",
+        "relative",
+        "relative",
+        "total"
+    ]
+    wf_colors_pos = [BLUE, RED, GREEN, GREEN, TEAL, RED, GREEN, PURPLE]
+
+    fig_wf = go.Figure(go.Waterfall(
+        orientation="v",
+        measure=wf_measures,
+        x=wf_labels,
+        y=wf_values,
+        textposition="outside",
+        text=[f"{v:+.0f}" if m == "relative" else f"{abs(v):.0f} k€"
+              for v, m in zip(wf_values, wf_measures)],
+        textfont=dict(size=10, color=TEXT, family="Inter, Arial"),
+        connector=dict(line=dict(color=BORDER, width=1, dash="dot")),
+        increasing=dict(marker=dict(color=GREEN, line_width=0)),
+        decreasing=dict(marker=dict(color=RED,   line_width=0)),
+        totals=dict(marker=dict(color=BLUE,       line_width=0)),
+    ))
+    # Colorier manuellement certaines barres
+    fig_wf.update_traces(
+        totals=dict(marker=dict(
+            color=[BLUE, PURPLE][1] if True else BLUE
+        ))
+    )
+    fig_wf.update_layout(**layout_dark(
+        height=320,
+        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
+                   zerolinecolor=BORDER, zerolinewidth=1,
+                   tickfont=dict(color=TEXT2, size=10),
+                   title=dict(text="k€", font=dict(color=TEXT3, size=10))),
+        xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                   tickfont=dict(color=TEXT2, size=10)),
+    ))
+    st.plotly_chart(fig_wf, width='stretch')
+
+    # ── Charges sociales + résultat mensuel ────────────────────────────────────
+    fc1, fc2 = st.columns(2)
+
+    with fc1:
+        sec("Charges sociales — Impact LODEOM (DOM)")
+        charges_comp = [
+            ("Charges patronales brutes",    charges_pat_brut,  BORDER),
+            ("Exonération LODEOM",           -exo_lodeom,       GREEN),
+            ("Charges patronales nettes",    charges_pat_nettes, TEAL),
+        ]
+        fig_cs = go.Figure()
+        fig_cs.add_bar(
+            x=["Brut", "Exonération\nLODEOM", "Net"],
+            y=[charges_pat_brut, exo_lodeom, charges_pat_nettes],
+            marker=dict(color=[TEXT3, GREEN, TEAL], line_width=0),
+            text=[f"{v:.0f} k€" for v in [charges_pat_brut, exo_lodeom, charges_pat_nettes]],
+            textposition="outside", textfont=dict(color=TEXT, size=11)
+        )
+        fig_cs.update_layout(**layout_dark(
+            height=265, showlegend=False,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€", font=dict(color=TEXT3, size=10))),
+            xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=10)),
+        ))
+        st.plotly_chart(fig_cs, width='stretch')
+
+    with fc2:
+        sec("Résultat mensuel avant IS — 10 mois 2026")
+        fig_rm = go.Figure()
+        fig_rm.add_bar(
+            x=MOIS, y=result_mensuel, name="Résultat mensuel",
+            marker=dict(
+                color=[GREEN if v > 0 else RED for v in result_mensuel],
+                line_width=0
+            ),
+            hovertemplate="%{x}<br>%{y:.0f} k€<extra></extra>"
+        )
+        fig_rm.add_scatter(
+            x=MOIS,
+            y=[result_mensuel[:i+1].mean() for i in range(len(MOIS))],
+            name="Moyenne YTD", mode="lines",
+            line=dict(color=GOLD, width=2, dash="dot")
+        )
+        fig_rm.update_layout(**layout_dark(
+            height=265,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
+                       zerolinecolor=BORDER, zerolinewidth=1,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€", font=dict(color=TEXT3, size=10))),
+            xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10)),
+        ))
+        st.plotly_chart(fig_rm, width='stretch')
+
+    # ── Tableau synthèse fiscal ────────────────────────────────────────────────
+    sec("Tableau de synthèse fiscale — YTD Oct 2026")
+    lignes = [
+        ("", "Chiffre d'affaires YTD",         f"{ca_ytd/1000:.1f} M€",   "—",          TEXT),
+        ("", "Charges d'exploitation",          f"{ca_ytd/1000*(1-0.182)-amortissements:.0f} k€", "—", TEXT2),
+        ("", "EBITDA",                          f"{ebitda_ytd:.0f} k€",    f"{ebitda_ytd/(ca_ytd/1000)*100:.1f}%", TEAL),
+        ("", "Dotations aux amortissements",    f"- {amortissements:.0f} k€", "—",        TEXT2),
+        ("", "Charges financières",             f"- {charges_fin:.0f} k€",    "—",        TEXT2),
+        ("SEP", "RÉSULTAT COMPTABLE",           f"{result_comptable:.0f} k€",  f"{result_comptable/(ca_ytd/1000)*100:.1f}%", TEXT),
+        ("", "Réintégrations (charges non déd.)", f"+ {reint_non_ded:.0f} k€", "—",      TEXT2),
+        ("", "Provisions déductibles",          f"- {prov_deductible:.0f} k€",  "—",      TEXT2),
+        ("", "Abattement DOM (art. 44 quater)", f"- {abat_dom:.0f} k€",         "DOM",    GREEN),
+        ("SEP", "RÉSULTAT FISCAL",              f"{result_fiscal:.0f} k€",    "—",        TEXT),
+        ("", "IS brut (taux 25%)",              f"- {is_brut:.0f} k€",          "25%",    RED),
+        ("", "Crédit Impôt Recherche (CIR)",    f"+ {cir:.0f} k€",              "—",      GREEN),
+        ("TOT", "IS NET DÛ",                    f"{is_net:.0f} k€",             f"{taux_effectif_is:.1f}%", PURPLE),
+    ]
+
+    rows_html = ""
+    for typ, label, val, note, color in lignes:
+        if typ == "SEP":
+            rows_html += f"""<tr class="fisc-sep">
+                <td colspan="2" style="color:{color};padding-left:12px;">{label}</td>
+                <td style="color:{color};text-align:right;">{val}</td>
+                <td style="color:{TEXT3};text-align:right;">{note}</td>
+            </tr>"""
+        elif typ == "TOT":
+            rows_html += f"""<tr class="fisc-total">
+                <td></td>
+                <td style="color:{color};padding-left:12px;">{label}</td>
+                <td style="color:{color};text-align:right;">{val}</td>
+                <td style="color:{TEXT3};text-align:right;">{note}</td>
+            </tr>"""
+        else:
+            indent = "padding-left:24px;" if typ == "" else ""
+            rows_html += f"""<tr>
+                <td></td>
+                <td style="{indent}color:{color};">{label}</td>
+                <td style="color:{color};text-align:right;">{val}</td>
+                <td style="color:{TEXT3};text-align:right;">{note}</td>
+            </tr>"""
+
+    st.markdown(f"""
+<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+            padding:16px;overflow:hidden;position:relative;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;
+              background:linear-gradient(90deg,{PURPLE},{TEAL},transparent);"></div>
+  <table class="fisc-table">
+    <thead><tr>
+      <th style="width:24px;"></th>
+      <th>Rubrique</th>
+      <th style="text-align:right;">Montant</th>
+      <th style="text-align:right;">Note</th>
+    </tr></thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+</div>
+<div style="margin-top:8px;font-size:9px;color:{TEXT3};">
+  Calcul indicatif — art. 44 quaterdecies CGI · LODEOM (L. n°2009-594) · CIR art. 244 quater B CGI
+</div>
+""", unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TAB 4 — ALERTES
+# ════════════════════════════════════════════════════════════════════════════════
+with tab4:
     sec("Alertes performance — semaine 45 · 3 nov. 2026")
 
     alertes = [
-        dict(prio="CRITIQUE", border=RED,    bbg=f"rgba(239,68,68,.15)",   bc=RED,
+        dict(prio="CRITIQUE", border=RED,    bbg="rgba(239,68,68,.15)",  bc=RED,
              titre="Sucrerie — TRS en décrochage",
              val=f"{trs[1,M]:.1f}%", cible="78%",
              cause="Arrêt non planifié (pompe centrifuge) — 4 h perdues semaine 44",
              action="Maintenance préventive à programmer avant semaine 46",
-             resp="G. Davoigniot"),
-        dict(prio="CRITIQUE", border=RED,    bbg=f"rgba(239,68,68,.15)",   bc=RED,
+             resp="Resp. Production"),
+        dict(prio="CRITIQUE", border=RED,    bbg="rgba(239,68,68,.15)",  bc=RED,
              titre="Chocolat Lait — Marge sous objectif",
              val=f"{taux_marge[1,M]:.1f}%", cible="36%",
              cause="Hausse matières cacao +8% (fèves Sambirano) non répercutée sur PV",
              action="Révision tarifaire gamme Chocolat Lait — étude d'impact PV en cours",
              resp="Direction commerciale"),
-        dict(prio="VIGILANCE", border=ORANGE, bbg=f"rgba(249,115,22,.15)", bc=ORANGE,
+        dict(prio="VIGILANCE", border=ORANGE, bbg="rgba(249,115,22,.15)", bc=ORANGE,
              titre="Sucre Blanc — Sous-réalisation CA",
              val=f"{ca_reel[3,M]:.0f} k€", cible=f"{ca_bud[3,M]:.0f} k€",
              cause="Sous-réalisation 4% vs budget — saisonnalité exportation",
              action="Vérifier carnet de commandes export — point avec équipe commerciale",
              resp="Direction commerciale"),
-        dict(prio="VIGILANCE", border=ORANGE, bbg=f"rgba(249,115,22,.15)", bc=ORANGE,
+        dict(prio="VIGILANCE", border=ORANGE, bbg="rgba(249,115,22,.15)", bc=ORANGE,
              titre="Conditionnement — Dérive coût/kg",
              val=f"{cout_kg['Conditionnement'][M]:.2f} €/kg", cible="0,90 €/kg",
              cause="Dérive progressive depuis août — surconsommation emballage",
              action="Audit poste emballage — analyse des pertes par format",
-             resp="G. Davoigniot"),
-        dict(prio="POSITIF", border=GREEN,   bbg=f"rgba(34,197,94,.15)",   bc=GREEN,
-             titre="Sirops — Marge en dépassement",
+             resp="Resp. Production"),
+        dict(prio="POSITIF", border=GREEN,   bbg="rgba(34,197,94,.15)",   bc=GREEN,
+             titre="Sirops — Marge brute en dépassement",
              val=f"{taux_marge[4,M]:.1f}%", cible="45%",
              cause="Recette optimisée (réduction sucre, qualité maintenue)",
              action="Capitaliser la recette — étendre à la gamme Sirops Épices",
@@ -625,9 +841,7 @@ with tab3:
   <div style="position:absolute;top:0;left:0;right:0;height:2px;
               background:linear-gradient(90deg,{GOLD},{TEAL},transparent);"></div>
   <div style="font-size:10px;color:{TEXT3};text-transform:uppercase;
-              letter-spacing:1.8px;font-weight:700;margin-bottom:18px;">
-    Synthèse semaine 45
-  </div>
+              letter-spacing:1.8px;font-weight:700;margin-bottom:18px;">Synthèse semaine 45</div>
   <div style="display:flex;gap:0;align-items:stretch;">
     <div style="flex:1;text-align:center;padding:0 20px;">
       <div style="font-size:40px;font-weight:900;color:{RED};line-height:1;">{nb_c}</div>
