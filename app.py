@@ -441,22 +441,27 @@ with tab2:
     ):
         val    = trs[ci, M]
         gcolor = GREEN if val >= cible + 3 else (GOLD if val >= cible else RED)
+        ecart_str = f"{val - cible:+.1f} pt vs cible"
         fig_g  = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
+            mode="gauge+number",
             value=val,
-            delta=dict(reference=cible, relative=False,
-                       increasing=dict(color=GREEN), decreasing=dict(color=RED),
-                       font=dict(size=13, family="Inter, Arial")),
-            number=dict(suffix="%", font=dict(size=34, color=TEXT, family="Inter, Arial")),
-            title=dict(
-                text=f"<b>{atelier}</b>"
-                     f"<br><span style='font-size:11px;color:{TEXT2};'>Cible {cible:.0f}%</span>",
-                font=dict(size=14, color=TEXT, family="Inter, Arial")
+            number=dict(
+                suffix="%",
+                font=dict(size=52, color=gcolor, family="Inter, Arial"),
+                valueformat=".1f"
             ),
+            title=dict(
+                text=f"<b style='font-size:13px;color:{TEXT};'>{atelier}</b>"
+                     f"<br><span style='font-size:10px;color:{TEXT2};'>"
+                     f"Cible {cible:.0f}% &nbsp;·&nbsp; "
+                     f"<span style='color:{gcolor};font-weight:700;'>{ecart_str}</span></span>",
+                font=dict(size=13, color=TEXT, family="Inter, Arial")
+            ),
+            domain=dict(x=[0, 1], y=[0, 1]),
             gauge=dict(
                 axis=dict(range=[60, 100], tickwidth=1, tickcolor=TEXT3,
                           nticks=5, tickfont=dict(color=TEXT3, size=9)),
-                bar=dict(color=gcolor, thickness=0.28),
+                bar=dict(color=gcolor, thickness=0.3),
                 bgcolor=CARD2, borderwidth=1, bordercolor=BORDER,
                 steps=[
                     dict(range=[60, 70],    color="#0D1521"),
@@ -467,7 +472,7 @@ with tab2:
             )
         ))
         fig_g.update_layout(
-            height=230, margin=dict(l=24, r=24, t=36, b=20),
+            height=240, margin=dict(l=20, r=20, t=20, b=0),
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(family="Inter, Arial, sans-serif")
         )
