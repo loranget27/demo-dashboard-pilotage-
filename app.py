@@ -205,10 +205,15 @@ cir                   = 32.0    # Crédit Impôt Recherche
 is_net                = max(0, is_brut - cir)
 taux_effectif_is      = is_net / max(1, result_comptable) * 100
 
+# Profil saisonnier + charges exceptionnelles (arrêts maintenance fév & août)
+_saison   = np.array([0.78, 0.65, 0.95, 1.08, 1.12, 0.98, 0.72, 0.60, 1.05, 1.18])
+_charges_except = np.array([0, 28, 0, 0, 0, 0, 0, 32, 0, 0])   # arrêts planifiés (k€)
 result_mensuel = np.array([
-    ebitda_ytd / 10 * (1 + np.random.uniform(-0.08, 0.10)) -
-    amortissements / 10 - charges_fin / 10
-    for _ in MOIS
+    ebitda_ytd / 10 * _saison[i] * (1 + np.random.uniform(-0.10, 0.12))
+    - amortissements / 10
+    - charges_fin / 10
+    - _charges_except[i]
+    for i in range(len(MOIS))
 ])
 
 ATEL_COLORS = [GOLD, TEAL, GREEN]
