@@ -391,6 +391,36 @@ eff_cat = np.array([48, 18, 15, 11])
 ms_cat  = np.array([62.5, 28.0, 20.5, 32.0])   # k€/mois
 ABS_COLORS = [RED, ORANGE, PURPLE, TEAL]
 
+# ── Données Achats & Prix de Revient ─────────────────────────────────────────
+MATIERES_MP = ["Cacao", "Sucre brut", "Rhum vrac", "Packaging", "Énergie"]
+ORIGINES_MP = ["Côte d'Ivoire", "Maurice / Brésil", "Martinique", "Europe", "Local Réunion"]
+UNITES_MP   = ["€/t", "€/t", "€/hL AP", "€/t", "€/MWh"]
+VOL_MP      = np.array([85.0, 450.0, 12.0, 120.0, 1850.0])  # t / hL AP / MWh (annuel)
+COUV_PCT    = np.array([100, 100, 85, 90, 0])    # % des besoins couverts par l'engagement
+
+# Prix d'achat engagés (contractualisés nov. 2025, livraison 2026)
+PRIX_ENG_MP = np.array([3850.0, 480.0, 1200.0, 2800.0, 145.0])
+# Cours marché Oct 2026
+PRIX_MKT_MP = np.array([4280.0, 510.0, 1180.0, 2950.0, 162.0])
+
+# Coût logistique par unité, arrivée La Réunion (€/t ou €/MWh)
+LOG_BUD_MP  = np.array([185.0, 95.0,  65.0, 220.0, 0.0])   # budgété
+LOG_ACT_MP  = np.array([215.0, 108.0, 70.0, 245.0, 0.0])   # réel (fret maritime tendu)
+
+# Agrégats k€ (annuel)
+budget_mp_total  = float(np.sum(PRIX_ENG_MP * VOL_MP / 1000))
+marche_mp_total  = float(np.sum(PRIX_MKT_MP * VOL_MP / 1000))
+economie_mp      = marche_mp_total - budget_mp_total         # positif = économie
+budget_log_total = float(np.sum(LOG_BUD_MP  * VOL_MP / 1000))
+actuel_log_total = float(np.sum(LOG_ACT_MP  * VOL_MP / 1000))
+surcout_fret     = actuel_log_total - budget_log_total       # surcoût logistique
+expo_n1          = float(np.sum(PRIX_MKT_MP * VOL_MP / 1000))
+
+# Évolution mensuelle index (base 100 = Jan 2026, prix d'engagement)
+_cacao_idx = np.array([100, 103, 107, 109, 112, 108, 110, 113, 109, 111])
+_sucre_idx = np.array([100, 101, 102, 103, 104, 105, 104, 106, 107, 106])
+_fret_idx  = np.array([100, 102, 105, 108, 112, 115, 113, 116, 118, 112])
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def kpi(label, val, delta, icon, up, color=GOLD):
     dc    = GREEN if up else RED
@@ -507,12 +537,13 @@ st.markdown(
 )
 
 # ── Onglets ───────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab_achat, tab6 = st.tabs([
     "  📊  Vue Direction  ",
     "  🤝  Vue Commerciale  ",
     "  ⚙️  Production & Coûts  ",
     "  🏛  Fiscalité  ",
     "  👥  Ressources Humaines  ",
+    "  🛒  Achats & Prix de Revient  ",
     "  🔔  Alertes  "
 ])
 
@@ -1899,6 +1930,221 @@ with tab5:
                    tickfont=dict(color=TEXT2, size=10)),
     ))
     st.plotly_chart(fig_abm, width='stretch')
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TAB ACHAT — ACHATS & PRIX DE REVIENT
+# ════════════════════════════════════════════════════════════════════════════════
+with tab_achat:
+    # ── KPIs ─────────────────────────────────────────────────────────────────
+    sec("Engagements & exposition marché — Campagne 2026")
+    ka1, ka2, ka3, ka4 = st.columns(4)
+    for col, label, val, delta, up, icon, color in [
+        (ka1, "Budget matières engagé",   f"{budget_mp_total:.0f} k€",
+         "Contractualisé nov. 2025 · livraison 2026",    True,              "📦", GOLD),
+        (ka2, "Économie vs cours spot",   f"+{economie_mp:.0f} k€",
+         "Avantage achat anticipé vs marché Oct-26",     economie_mp >= 0,  "💰", GREEN),
+        (ka3, "Surcoût fret actuel",      f"+{surcout_fret:.0f} k€",
+         "vs fret budgété — fret maritime tendu",        False,             "🚢", ORANGE),
+        (ka4, "Exposition budget N+1",    f"{expo_n1:.0f} k€",
+         "Estimation achats 2027 aux cours actuels",     True,              "📊", PURPLE),
+    ]:
+        with col:
+            st.markdown(kpi(label, val, delta, icon, up, color), unsafe_allow_html=True)
+
+    # ── Tableau engagements ───────────────────────────────────────────────────
+    sec("Tableau des engagements matières — Campagne 2026 · Arrêté Oct-26")
+    rows_eng = ""
+    for i, mp in enumerate(MATIERES_MP):
+        ecart_pct = (PRIX_MKT_MP[i] - PRIX_ENG_MP[i]) / PRIX_ENG_MP[i] * 100
+        eco_k     = (PRIX_MKT_MP[i] - PRIX_ENG_MP[i]) * VOL_MP[i] / 1000
+        eco_col   = GREEN if eco_k >= 0 else RED
+        eco_arrow = "▲" if eco_k >= 0 else "▼"
+        ecart_col = GREEN if ecart_pct > 0 else RED   # marché > engagé = on a eu raison d'acheter tôt
+        couv_col  = GREEN if COUV_PCT[i] == 100 else (GOLD if COUV_PCT[i] >= 85 else ORANGE)
+        log_ec    = LOG_ACT_MP[i] - LOG_BUD_MP[i]
+        log_col   = GREEN if log_ec <= 0 else ORANGE
+        rows_eng += f"""
+        <tr>
+          <td style="color:{TEXT};font-weight:600;">{mp}</td>
+          <td style="color:{TEXT2};font-size:10px;">{ORIGINES_MP[i]}</td>
+          <td style="color:{TEXT3};">{UNITES_MP[i]}</td>
+          <td style="color:{GOLD};font-weight:700;">{PRIX_ENG_MP[i]:,.0f}</td>
+          <td style="color:{TEXT};">{PRIX_MKT_MP[i]:,.0f}</td>
+          <td style="color:{ecart_col};font-weight:700;">{ecart_pct:+.1f}%</td>
+          <td style="color:{TEXT2};">{VOL_MP[i]:,.0f}</td>
+          <td style="color:{couv_col};font-weight:600;">{COUV_PCT[i]:.0f}%</td>
+          <td style="color:{log_col};font-weight:600;">{log_ec:+.0f}</td>
+          <td style="color:{eco_col};font-weight:700;">{eco_arrow} {abs(eco_k):.0f} k€</td>
+        </tr>"""
+    eco_total_k  = float(np.sum((PRIX_MKT_MP - PRIX_ENG_MP) * VOL_MP / 1000))
+    eco_col_tot  = GREEN if eco_total_k >= 0 else RED
+    st.markdown(f"""
+<div style="overflow-x:auto;">
+<table class="fisc-table" style="width:100%;">
+  <thead><tr>
+    <th>Matière</th><th>Origine</th><th>Unité</th>
+    <th>Prix engagé</th><th>Cours Oct-26</th><th>Écart mché</th>
+    <th>Volume</th><th>Couverture</th><th>Δ Fret (€/u)</th><th>Économie / Perte</th>
+  </tr></thead>
+  <tbody>
+    {rows_eng}
+    <tr class="fisc-total">
+      <td colspan="9">Total économie achat anticipé vs cours spot Oct-26</td>
+      <td style="color:{eco_col_tot};font-weight:900;">{eco_total_k:+.0f} k€</td>
+    </tr>
+  </tbody>
+</table>
+</div>""", unsafe_allow_html=True)
+
+    # ── Graphiques : courbe index + décomposition PR ──────────────────────────
+    ag1, ag2 = st.columns(2)
+
+    with ag1:
+        sec("Évolution cours 2026 vs prix d'engagement (index base 100 = janv.)")
+        fig_cours = go.Figure()
+        fig_cours.add_scatter(
+            x=MOIS, y=_cacao_idx, name="Cacao (index)",
+            line=dict(color=GOLD, width=2.5), mode="lines+markers",
+            marker=dict(size=6, color=GOLD),
+            fill="tozeroy", fillcolor="rgba(245,166,35,0.07)"
+        )
+        fig_cours.add_scatter(
+            x=MOIS, y=_sucre_idx, name="Sucre brut (index)",
+            line=dict(color=TEAL, width=2), mode="lines+markers",
+            marker=dict(size=5, color=TEAL)
+        )
+        fig_cours.add_scatter(
+            x=MOIS, y=_fret_idx, name="Fret maritime (index)",
+            line=dict(color=ORANGE, width=2, dash="dash"), mode="lines",
+        )
+        fig_cours.add_hline(
+            y=100,
+            line=dict(color=TEXT3, dash="dot", width=1.5),
+            annotation_text="Prix d'engagement (base 100)",
+            annotation_position="top left",
+            annotation_font=dict(color=TEXT3, size=9)
+        )
+        fig_cours.update_layout(**layout_dark(
+            height=285,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10), range=[90, 128],
+                       title=dict(text="Index (100 = engagement)", font=dict(color=TEXT3, size=9))),
+        ))
+        st.plotly_chart(fig_cours, width='stretch')
+
+    with ag2:
+        sec("Décomposition coût matières annuel — engagé vs économie réalisée (k€)")
+        # Tout en k€ → comparaison pertinente inter-matières
+        c_engage  = PRIX_ENG_MP * VOL_MP / 1000
+        c_log_bud = LOG_BUD_MP  * VOL_MP / 1000
+        c_log_sc  = (LOG_ACT_MP - LOG_BUD_MP) * VOL_MP / 1000
+        c_eco     = np.maximum(0, PRIX_MKT_MP - PRIX_ENG_MP) * VOL_MP / 1000  # économie réalisée
+
+        fig_pr = go.Figure()
+        fig_pr.add_bar(x=MATIERES_MP, y=c_engage,  name="Prix engagé (k€)",
+                       marker=dict(color=GOLD, line_width=0))
+        fig_pr.add_bar(x=MATIERES_MP, y=c_log_bud, name="Fret budgété (k€)",
+                       marker=dict(color=TEAL, line_width=0, opacity=0.85))
+        fig_pr.add_bar(x=MATIERES_MP, y=c_log_sc,  name="Surcoût fret actuel (k€)",
+                       marker=dict(color=ORANGE, line_width=0))
+        fig_pr.add_bar(x=MATIERES_MP, y=c_eco,     name="Économie vs spot (k€)",
+                       marker=dict(color=GREEN, line_width=0, opacity=0.6),
+                       text=[f"+{v:.0f}" if v > 0 else "" for v in c_eco],
+                       textposition="outside", textfont=dict(size=9, color=GREEN))
+        fig_pr.update_layout(**layout_dark(
+            height=285, barmode="stack",
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€ / an", font=dict(color=TEXT3, size=10))),
+        ))
+        st.plotly_chart(fig_pr, width='stretch')
+
+    # ── Simulateur N+1 ────────────────────────────────────────────────────────
+    sec("Simulateur prix de revient — Campagne 2027 (engagements à signer avant déc. 2026)")
+    st.markdown(f"""
+<div style="background:{CARD2};border:1px solid {BORDER};border-radius:10px;
+            padding:12px 18px;margin-bottom:14px;border-left:3px solid {GOLD};">
+  <span style="font-size:11px;color:{TEXT2};">
+    💡 <b style="color:{TEXT};">Stratégie achat N+1 :</b> Les contrats 2027 doivent être
+    finalisés avant <b style="color:{GOLD};">décembre 2026</b>. Les matières non intégralement
+    couvertes (Rhum 85%, Packaging 90%) restent exposées au marché spot.
+    La logistique reste variable quel que soit le moment de l'engagement matière.
+  </span>
+</div>""", unsafe_allow_html=True)
+
+    sim1, sim2, sim3 = st.columns(3)
+    with sim1:
+        d_cacao = st.slider("Variation cours cacao (%)",  -20, 50, 0, step=1, key="sim_cacao",
+                            help="Cacao très volatile : +90% sur 2 ans (2024–2026). Côte d'Ivoire & Ghana.")
+    with sim2:
+        d_sucre = st.slider("Variation cours sucre (%)",  -10, 30, 0, step=1, key="sim_sucre",
+                            help="Cours sucre brut (Maurice/Brésil) — sensible aux aléas climatiques.")
+    with sim3:
+        d_fret  = st.slider("Variation coût fret (%)",    -20, 40, 0, step=1, key="sim_fret",
+                            help="Fret maritime La Réunion — impacté par tensions canal de Suez.")
+
+    # Calcul simulé
+    prix_n1      = PRIX_MKT_MP.copy()
+    prix_n1[0]  *= (1 + d_cacao / 100)
+    prix_n1[1]  *= (1 + d_sucre / 100)
+    log_n1       = LOG_ACT_MP * (1 + d_fret / 100)
+    base_n1      = float(np.sum((PRIX_MKT_MP + LOG_ACT_MP) * VOL_MP / 1000))
+    imp_cacao_wf = float((prix_n1[0] - PRIX_MKT_MP[0]) * VOL_MP[0] / 1000)
+    imp_sucre_wf = float((prix_n1[1] - PRIX_MKT_MP[1]) * VOL_MP[1] / 1000)
+    imp_fret_wf  = float(np.sum((log_n1 - LOG_ACT_MP) * VOL_MP / 1000))
+    total_n1     = base_n1 + imp_cacao_wf + imp_sucre_wf + imp_fret_wf
+    delta_n1     = total_n1 - base_n1
+
+    # Impact marge brute
+    ca_annuel_est  = ca_ytd * 1.2                              # extrapolation annuelle
+    impact_mg_pts  = -delta_n1 / ca_annuel_est * 100           # pts de marge (négatif si hausse coûts)
+    ca_comp_k      = abs(delta_n1) / (taux_mg_moy / 100) if taux_mg_moy > 0 else 0
+
+    swf1, swf2 = st.columns([2, 1])
+    with swf1:
+        fig_wf = go.Figure(go.Waterfall(
+            measure=["absolute", "relative", "relative", "relative", "total"],
+            x=["Base cours actuels", "Impact cacao", "Impact sucre", "Impact fret", "Budget N+1 simulé"],
+            y=[base_n1, imp_cacao_wf, imp_sucre_wf, imp_fret_wf, total_n1],
+            connector=dict(line=dict(color=BORDER, width=1, dash="dot")),
+            increasing=dict(marker=dict(color=RED,   line_width=0)),
+            decreasing=dict(marker=dict(color=GREEN, line_width=0)),
+            totals=dict(marker=dict(color=GOLD, line_width=0)),
+            textposition="outside",
+            text=[
+                f"{base_n1:.0f} k€",
+                f"{imp_cacao_wf:+.0f} k€",
+                f"{imp_sucre_wf:+.0f} k€",
+                f"{imp_fret_wf:+.0f} k€",
+                f"{total_n1:.0f} k€",
+            ],
+            textfont=dict(size=9, color=TEXT),
+        ))
+        fig_wf.update_layout(**layout_dark(
+            height=265, showlegend=False,
+            margin=dict(l=4, r=4, t=28, b=4),
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€ annuel", font=dict(color=TEXT3, size=10))),
+        ))
+        st.plotly_chart(fig_wf, width='stretch')
+
+    with swf2:
+        up_total = delta_n1 <= 0
+        up_mg    = impact_mg_pts >= 0
+        st.markdown(
+            kpi("Budget N+1 simulé", f"{total_n1:.0f} k€",
+                f"{delta_n1:+.0f} k€ vs base actuelle", "📦", up_total, GOLD) +
+            "<div style='margin-top:12px;'>" +
+            kpi("Impact sur marge brute", f"{impact_mg_pts:+.1f} pt",
+                "variation estimée du taux de marge", "📉" if not up_mg else "📈", up_mg, TEAL) +
+            "</div>" +
+            "<div style='margin-top:12px;'>" +
+            kpi("CA à générer pour absorber", f"{ca_comp_k:.0f} k€",
+                "CA additionnel à marge brute constante", "🎯", ca_comp_k == 0, PURPLE) +
+            "</div>",
+            unsafe_allow_html=True
+        )
 
 # ════════════════════════════════════════════════════════════════════════════════
 # TAB 6 — ALERTES
