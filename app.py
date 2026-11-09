@@ -517,55 +517,138 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 ])
 
 # ════════════════════════════════════════════════════════════════════════════════
-# TAB 1 — VUE DIRECTION
+# TAB 1 — VUE DIRECTION (interactive)
 # ════════════════════════════════════════════════════════════════════════════════
 with tab1:
-    sec("Indicateurs clés — Octobre 2026")
-    c1, c2, c3, c4 = st.columns(4)
-    kpi_data = [
-        (c1, "CA Mensuel (MTD)", f"{ca_mtd/1000:.2f} M€",
-         f"{(ca_mtd-ca_mtd_bud)/ca_mtd_bud*100:+.1f}% vs budget",
-         ca_mtd >= ca_mtd_bud, "💰", GOLD),
-        (c2, "CA Cumulé (YTD)", f"{ca_ytd/1000:.2f} M€",
-         f"{(ca_ytd-ca_ytd_bud)/ca_ytd_bud*100:+.1f}% vs budget",
-         ca_ytd >= ca_ytd_bud, "📈", TEAL),
-        (c3, "Marge brute MTD", f"{taux_mg_moy:.1f}%",
-         f"{taux_mg_moy-prev_mg:+.1f} pt vs mois précédent",
-         taux_mg_moy >= prev_mg, "💎", GREEN),
-        (c4, "TRS moyen ateliers", f"{trs_moy:.1f}%",
-         f"{trs_moy-trs[:,M-1].mean():+.1f} pt vs mois précédent",
-         trs_moy >= trs[:,M-1].mean(), "⚙️", BLUE),
+    # ── Barre de contrôles ────────────────────────────────────────────────────
+    st.markdown(f"""
+<div style="background:{CARD};border:1px solid {BORDER};border-radius:10px;
+            padding:10px 16px;margin-bottom:12px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;
+              background:linear-gradient(90deg,{GOLD},{TEAL},transparent);"></div>
+</div>""", unsafe_allow_html=True)
+
+    ctrl1, ctrl2, ctrl3 = st.columns([3, 1, 1])
+    with ctrl1:
+        m_sel_dir = st.select_slider(
+            "Mois d'analyse",
+            options=MOIS,
+            value="Oct",
+            key="dir_mois"
+        )
+    with ctrl2:
+        vue_dir = st.radio(
+            "Vue",
+            ["Mensuel", "Cumulé YTD"],
+            horizontal=True,
+            key="dir_vue"
+        )
+    with ctrl3:
+        gamme_dir = st.selectbox(
+            "Focus gamme",
+            options=["Toutes"] + GAMMES,
+            key="dir_gamme"
+        )
+
+    # ── Calculs dynamiques ────────────────────────────────────────────────────
+    M_dir   = MOIS.index(m_sel_dir)
+    is_ytd  = (vue_dir == "Cumulé YTD")
+    mois_lbl = m_sel_dir + " 2026"
+    vue_lbl  = f"YTD Jan–{m_sel_dir} 2026" if is_ytd else mois_lbl
+
+    if is_ytd:
+        ca_p     = ca_reel[:, :M_dir+1].sum()
+        ca_p_bud = ca_bud[:, :M_dir+1].sum()
+        mb_p     = (ca_reel[:, :M_dir+1] * taux_marge[:, :M_dir+1] / 100).sum()
+        ebitda_p = ca_p / 1000 * 0.182
+        result_p = float(np.sum(result_mensuel[:M_dir+1]))
+    else:
+        ca_p     = ca_reel[:, M_dir].sum()
+        ca_p_bud = ca_bud[:, M_dir].sum()
+        mb_p     = (ca_reel[:, M_dir] * taux_marge[:, M_dir] / 100).sum()
+        ebitda_p = ca_p / 1000 * 0.182
+        result_p = result_mensuel[M_dir]
+
+    taux_mg_p  = mb_p / ca_p * 100
+    ecart_bud_pct = (ca_p - ca_p_bud) / ca_p_bud * 100
+    trs_p = trs[:, M_dir].mean()
+    prod_etp = ca_p / eff_total   # k€/ETP
+
+    if M_dir > 0:
+        if is_ytd:
+            ca_prev   = ca_reel[:, :M_dir].sum()
+            tg_prev   = (ca_reel[:, :M_dir] * taux_marge[:, :M_dir] / 100).sum() / ca_prev * 100
+        else:
+            ca_prev   = ca_reel[:, M_dir-1].sum()
+            tg_prev   = (ca_reel[:, M_dir-1] * taux_marge[:, M_dir-1] / 100).sum() / ca_prev * 100
+        trs_prev = trs[:, M_dir-1].mean()
+        prod_etp_prev = ca_prev / eff_total
+    else:
+        ca_prev   = ca_p
+        tg_prev   = taux_mg_p
+        trs_prev  = trs_p
+        prod_etp_prev = prod_etp
+
+    # ── KPIs (6 cartes) ───────────────────────────────────────────────────────
+    sec(f"Indicateurs clés — {vue_lbl}")
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    dir_kpis = [
+        (k1, f"CA {vue_dir}", f"{ca_p/1000:.2f} M€",
+         f"{ecart_bud_pct:+.1f}% vs budget", ca_p >= ca_p_bud, "💰", GOLD),
+        (k2, "Écart budget", f"{ecart_bud_pct:+.1f}%",
+         f"{(ca_p-ca_p_bud)/1000:+.2f} M€ en valeur", ca_p >= ca_p_bud,
+         "🎯", GREEN if ca_p >= ca_p_bud else RED),
+        (k3, "Marge brute", f"{taux_mg_p:.1f}%",
+         f"{taux_mg_p-tg_prev:+.1f} pt vs mois préc.", taux_mg_p >= tg_prev, "💎", TEAL),
+        (k4, "EBITDA estimé", f"{ebitda_p*1000:.0f} k€",
+         f"{ebitda_p/ca_p*1000*100:.1f}% du CA période", ebitda_p > 0, "📈", PURPLE),
+        (k5, "TRS moyen", f"{trs_p:.1f}%",
+         f"{trs_p-trs_prev:+.1f} pt vs mois préc.", trs_p >= trs_prev, "⚙️", BLUE),
+        (k6, "Productivité CA/ETP", f"{prod_etp:.0f} k€",
+         f"{prod_etp-prod_etp_prev:+.0f} k€ vs mois préc.", prod_etp >= prod_etp_prev, "👥", ORANGE),
     ]
-    for col, label, val, delta, up, icon, color in kpi_data:
+    for col, label, val, delta, up, icon, color in dir_kpis:
         with col:
             st.markdown(kpi(label, val, delta, icon, up, color), unsafe_allow_html=True)
 
-    sec("CA réel vs budget — 10 mois 2026")
+    # ── Graphique CA : toute la période avec mois sélectionné en surbrillance ─
+    sec(f"CA réel vs budget — 10 mois 2026  ·  focus {m_sel_dir}")
     ca_tot_r = ca_reel.sum(axis=0)
     ca_tot_b = ca_bud.sum(axis=0)
-    ecart_k  = ca_tot_r - ca_tot_b          # écart absolu k€
+    ecart_k  = ca_tot_r - ca_tot_b
     pct_r    = ca_tot_r / ca_tot_b * 100
 
-    # Graphique principal : budget + réel + % réalisation
+    # Couleurs : mois sélectionné plus lumineux
+    bar_colors_b = [GOLD if i == M_dir else BORDER for i in range(len(MOIS))]
+    bar_colors_r = []
+    for i, (r, b) in enumerate(zip(ca_tot_r, ca_tot_b)):
+        base = GREEN if r >= b else RED
+        bar_colors_r.append(base if i != M_dir else (GREEN if r >= b else RED))
+
     t1a, t1b = st.columns([3, 1])
     with t1a:
         fig1 = go.Figure()
         fig1.add_bar(x=MOIS, y=ca_tot_b, name="Budget",
-                     marker=dict(color=BORDER, line_width=0), opacity=0.65)
+                     marker=dict(color=bar_colors_b, line_width=0), opacity=0.65)
         fig1.add_bar(x=MOIS, y=ca_tot_r, name="Réel",
-                     marker=dict(color=[GREEN if r >= b else RED
-                                        for r, b in zip(ca_tot_r, ca_tot_b)],
-                                 line_width=0),
+                     marker=dict(
+                         color=bar_colors_r,
+                         line=dict(color=[GOLD if i == M_dir else "rgba(0,0,0,0)"
+                                          for i in range(len(MOIS))], width=2),
+                     ),
                      text=[f"{r/1000:.2f}M" for r in ca_tot_r],
                      textposition="outside", textfont=dict(size=9, color=TEXT2))
         fig1.add_scatter(x=MOIS, y=pct_r, name="% réalisation", yaxis="y2",
                          line=dict(color=GOLD, width=2.5),
                          mode="lines+markers",
-                         marker=dict(size=8, color=[GREEN if p >= 100 else RED for p in pct_r],
+                         marker=dict(size=[12 if i == M_dir else 7 for i in range(len(MOIS))],
+                                     color=[GREEN if p >= 100 else RED for p in pct_r],
                                      line=dict(color=BG, width=2)),
                          text=[f"{p:.1f}%" for p in pct_r],
                          textposition="top center",
                          textfont=dict(size=8, color=GOLD))
+        # Ligne verticale sur le mois sélectionné
+        fig1.add_vline(x=M_dir, line=dict(color=GOLD, width=1, dash="dot"), opacity=0.5)
         fig1.update_layout(**layout_dark(
             height=295, barmode="group",
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
@@ -580,10 +663,13 @@ with tab1:
         st.plotly_chart(fig1, width='stretch')
 
     with t1b:
-        # Écarts absolus k€ par mois
         fig_ec = go.Figure(go.Bar(
             x=ecart_k, y=MOIS, orientation="h",
-            marker=dict(color=[GREEN if e >= 0 else RED for e in ecart_k], line_width=0),
+            marker=dict(
+                color=[GREEN if e >= 0 else RED for e in ecart_k],
+                line=dict(color=[GOLD if i == M_dir else "rgba(0,0,0,0)"
+                                 for i in range(len(MOIS))], width=2),
+            ),
             text=[f"{e:+.0f}" for e in ecart_k],
             textposition="outside", textfont=dict(size=9, color=TEXT),
         ))
@@ -600,20 +686,28 @@ with tab1:
         ))
         st.plotly_chart(fig_ec, width='stretch')
 
-    ca1, ca2 = st.columns(2)
+    # ── 3 graphiques du bas ───────────────────────────────────────────────────
+    ca1, ca2, ca3 = st.columns(3)
+
     with ca1:
-        sec("Taux de marge par gamme — Oct 2026")
-        mg  = taux_marge[:, M]
-        idx = np.argsort(mg)
-        bc  = [GREEN if mg[i] >= 40 else (GOLD if mg[i] >= 30 else RED) for i in idx]
+        sec(f"Marge par gamme — {m_sel_dir} 2026")
+        gidx = None if gamme_dir == "Toutes" else GAMMES.index(gamme_dir)
+        mg_sel = taux_marge[:, M_dir]
+        idx = np.argsort(mg_sel)
+        bc = []
+        for i in idx:
+            if gidx is not None and i != gidx:
+                bc.append(TEXT3)
+            else:
+                bc.append(GREEN if mg_sel[i] >= 40 else (GOLD if mg_sel[i] >= 30 else RED))
         fig2 = go.Figure(go.Bar(
-            x=mg[idx], y=[GAMMES[i] for i in idx], orientation="h",
+            x=mg_sel[idx], y=[GAMMES[i] for i in idx], orientation="h",
             marker=dict(color=bc, line_width=0),
-            text=[f"{mg[i]:.0f}%" for i in idx],
+            text=[f"{mg_sel[i]:.0f}%" for i in idx],
             textposition="outside", textfont=dict(color=TEXT, size=11),
         ))
         fig2.update_layout(**layout_dark(
-            height=255, showlegend=False,
+            height=265, showlegend=False,
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        range=[0, 70], ticksuffix="%", tickfont=dict(color=TEXT2, size=10)),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
@@ -622,20 +716,46 @@ with tab1:
         st.plotly_chart(fig2, width='stretch')
 
     with ca2:
-        sec("Répartition CA par gamme — Oct 2026")
+        sec("Résultat mensuel — 10 mois 2026")
+        fig_res = go.Figure()
+        fig_res.add_bar(
+            x=MOIS, y=result_mensuel,
+            marker=dict(
+                color=[GREEN if r > 0 else RED for r in result_mensuel],
+                opacity=[1.0 if i == M_dir else 0.55 for i in range(len(MOIS))],
+                line=dict(color=[GOLD if i == M_dir else "rgba(0,0,0,0)"
+                                 for i in range(len(MOIS))], width=2),
+            ),
+            text=[f"{r:.0f}" for r in result_mensuel],
+            textposition="outside", textfont=dict(size=8, color=TEXT2),
+        )
+        fig_res.add_hline(y=0, line=dict(color=BORDER, width=1))
+        fig_res.update_layout(**layout_dark(
+            height=265, showlegend=False,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€", font=dict(color=TEXT3, size=9))),
+        ))
+        st.plotly_chart(fig_res, width='stretch')
+
+    with ca3:
+        sec(f"Répartition CA — {m_sel_dir} 2026")
+        pull_pie = [0.08 if (gamme_dir != "Toutes" and GAMMES[i] == gamme_dir) else 0
+                    for i in range(len(GAMMES))]
         fig3 = go.Figure(go.Pie(
-            labels=GAMMES, values=ca_reel[:, M], hole=0.52,
+            labels=GAMMES, values=ca_reel[:, M_dir], hole=0.52,
+            pull=pull_pie,
             marker=dict(colors=PIE_COLORS, line=dict(color=BG, width=2)),
             textfont=dict(size=10, color=TEXT), textinfo="label+percent",
             hovertemplate="<b>%{label}</b><br>%{value:.0f} k€ · %{percent}<extra></extra>"
         ))
         fig3.add_annotation(
-            text=f"<b>{ca_reel[:,M].sum()/1000:.1f}</b><br>M€",
+            text=f"<b>{ca_reel[:,M_dir].sum()/1000:.1f}</b><br>M€",
             x=0.5, y=0.5, showarrow=False,
             font=dict(size=13, color=TEXT, family="Inter, Arial")
         )
         fig3.update_layout(
-            height=255, margin=dict(l=0, r=0, t=16, b=0),
+            height=265, margin=dict(l=0, r=0, t=16, b=0),
             paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
             font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
         )
