@@ -1959,41 +1959,74 @@ with tab_achat:
         eco_k     = (PRIX_MKT_MP[i] - PRIX_ENG_MP[i]) * VOL_MP[i] / 1000
         eco_col   = GREEN if eco_k >= 0 else RED
         eco_arrow = "▲" if eco_k >= 0 else "▼"
-        ecart_col = GREEN if ecart_pct > 0 else RED   # marché > engagé = on a eu raison d'acheter tôt
-        couv_col  = GREEN if COUV_PCT[i] == 100 else (GOLD if COUV_PCT[i] >= 85 else ORANGE)
+        ecart_col = GREEN if ecart_pct > 0 else RED
         log_ec    = LOG_ACT_MP[i] - LOG_BUD_MP[i]
         log_col   = GREEN if log_ec <= 0 else ORANGE
+        couv_bg   = "rgba(34,197,94,.12)" if COUV_PCT[i] == 100 else ("rgba(245,166,35,.12)" if COUV_PCT[i] >= 85 else "rgba(249,115,22,.12)")
+        couv_col  = GREEN if COUV_PCT[i] == 100 else (GOLD if COUV_PCT[i] >= 85 else ORANGE)
+        bar_pct   = min(100, int(abs(ecart_pct) * 4))
+        bar_col   = GREEN if ecart_pct > 0 else RED
         rows_eng += f"""
         <tr>
-          <td style="color:{TEXT};font-weight:600;">{mp}</td>
-          <td style="color:{TEXT2};font-size:10px;">{ORIGINES_MP[i]}</td>
-          <td style="color:{TEXT3};">{UNITES_MP[i]}</td>
-          <td style="color:{GOLD};font-weight:700;">{PRIX_ENG_MP[i]:,.0f}</td>
-          <td style="color:{TEXT};">{PRIX_MKT_MP[i]:,.0f}</td>
-          <td style="color:{ecart_col};font-weight:700;">{ecart_pct:+.1f}%</td>
-          <td style="color:{TEXT2};">{VOL_MP[i]:,.0f}</td>
-          <td style="color:{couv_col};font-weight:600;">{COUV_PCT[i]:.0f}%</td>
-          <td style="color:{log_col};font-weight:600;">{log_ec:+.0f}</td>
-          <td style="color:{eco_col};font-weight:700;">{eco_arrow} {abs(eco_k):.0f} k€</td>
+          <td style="white-space:nowrap;">
+            <div style="color:{TEXT};font-weight:700;font-size:12px;">{mp}</div>
+            <div style="color:{TEXT3};font-size:9px;margin-top:2px;">{ORIGINES_MP[i]} &nbsp;·&nbsp; {UNITES_MP[i]}</div>
+          </td>
+          <td style="color:{GOLD};font-weight:700;white-space:nowrap;">{PRIX_ENG_MP[i]:,.0f}</td>
+          <td style="color:{TEXT};white-space:nowrap;">{PRIX_MKT_MP[i]:,.0f}</td>
+          <td style="white-space:nowrap;">
+            <span style="color:{ecart_col};font-weight:700;">{ecart_pct:+.1f}%</span>
+            <div style="height:3px;background:{BORDER};border-radius:2px;margin-top:4px;overflow:hidden;">
+              <div style="width:{bar_pct}%;height:100%;background:{bar_col};border-radius:2px;"></div>
+            </div>
+          </td>
+          <td style="white-space:nowrap;">
+            <span style="background:{couv_bg};color:{couv_col};font-weight:700;
+                         padding:2px 8px;border-radius:20px;font-size:11px;">{COUV_PCT[i]:.0f}%</span>
+          </td>
+          <td style="color:{log_col};font-weight:600;white-space:nowrap;">{log_ec:+.0f} €/u</td>
+          <td style="white-space:nowrap;">
+            <span style="color:{eco_col};font-weight:800;">{eco_arrow} {abs(eco_k):.0f} k€</span>
+          </td>
         </tr>"""
-    eco_total_k  = float(np.sum((PRIX_MKT_MP - PRIX_ENG_MP) * VOL_MP / 1000))
-    eco_col_tot  = GREEN if eco_total_k >= 0 else RED
+    eco_total_k = float(np.sum((PRIX_MKT_MP - PRIX_ENG_MP) * VOL_MP / 1000))
+    eco_col_tot = GREEN if eco_total_k >= 0 else RED
     st.markdown(f"""
-<div style="overflow-x:auto;">
-<table class="fisc-table" style="width:100%;">
-  <thead><tr>
-    <th>Matière</th><th>Origine</th><th>Unité</th>
-    <th>Prix engagé</th><th>Cours Oct-26</th><th>Écart mché</th>
-    <th>Volume</th><th>Couverture</th><th>Δ Fret (€/u)</th><th>Économie / Perte</th>
-  </tr></thead>
+<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+            padding:4px 0;overflow:hidden;">
+<div style="overflow-x:auto;padding:0 2px;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead>
+    <tr style="border-bottom:1px solid {BORDER};">
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;text-align:left;">Matière · Origine · Unité</th>
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;text-align:right;">Prix engagé</th>
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;text-align:right;">Cours Oct-26</th>
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;">Écart marché</th>
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;text-align:center;">Couverture</th>
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;text-align:right;">Δ Fret</th>
+      <th style="font-size:10px;font-weight:700;color:{TEXT3};text-transform:uppercase;
+                 letter-spacing:1px;padding:10px 14px;text-align:right;">Économie / Perte</th>
+    </tr>
+  </thead>
   <tbody>
     {rows_eng}
-    <tr class="fisc-total">
-      <td colspan="9">Total économie achat anticipé vs cours spot Oct-26</td>
-      <td style="color:{eco_col_tot};font-weight:900;">{eco_total_k:+.0f} k€</td>
+    <tr style="border-top:2px solid {BORDER};background:{CARD2};">
+      <td colspan="6" style="padding:10px 14px;color:{TEXT};font-weight:700;font-size:12px;">
+        Total économie achat anticipé vs cours spot Oct-26
+      </td>
+      <td style="padding:10px 14px;text-align:right;white-space:nowrap;">
+        <span style="color:{eco_col_tot};font-weight:900;font-size:14px;">{eco_total_k:+.0f} k€</span>
+      </td>
     </tr>
   </tbody>
 </table>
+</div>
 </div>""", unsafe_allow_html=True)
 
     # ── Graphiques : courbe index + décomposition PR ──────────────────────────
