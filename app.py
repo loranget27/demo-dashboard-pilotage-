@@ -149,7 +149,17 @@ ca_bud = np.array([
     [120,122,125,128,130,132,135,138,140,142],
     [ 85, 87, 90, 92, 95, 97,100,102,105,108],
 ], dtype=float)
-ca_reel = ca_bud * (1 + np.random.uniform(-0.04, 0.06, ca_bud.shape))
+# Variations structurées par gamme (narratif cohérent avec les alertes)
+_var = np.array([
+#    Jan    Fév    Mar    Avr    Mai    Jun    Jul    Aoû    Sep    Oct
+    [ 0.09,  0.06, -0.04,  0.13,  0.10, -0.09,  0.15,  0.07, -0.05,  0.12],  # Choc. Noir
+    [-0.07, -0.11, -0.14, -0.09, -0.13, -0.17, -0.08, -0.12, -0.15, -0.10],  # Choc. Lait (cacao ↑)
+    [ 0.05,  0.08,  0.04,  0.10,  0.06,  0.11,  0.07,  0.05,  0.09,  0.06],  # Sucre Roux
+    [-0.10, -0.06, -0.04, -0.12, -0.05, -0.14, -0.08, -0.10, -0.06, -0.09],  # Sucre Blanc (export)
+    [ 0.14,  0.17,  0.12,  0.21,  0.16,  0.11,  0.19,  0.15,  0.13,  0.20],  # Sirops (↑ recette)
+    [ 0.06, -0.10,  0.17, -0.07,  0.13,  0.22, -0.05,  0.14, -0.11,  0.09],  # Rhum Arrangé
+])
+ca_reel = ca_bud * (1 + _var)
 
 taux_marge = np.array([
     [38,39,38,40,41,40,42,41,43,42],
@@ -533,29 +543,62 @@ with tab1:
     sec("CA réel vs budget — 10 mois 2026")
     ca_tot_r = ca_reel.sum(axis=0)
     ca_tot_b = ca_bud.sum(axis=0)
+    ecart_k  = ca_tot_r - ca_tot_b          # écart absolu k€
     pct_r    = ca_tot_r / ca_tot_b * 100
 
-    fig1 = go.Figure()
-    fig1.add_bar(x=MOIS, y=ca_tot_b, name="Budget",
-                 marker=dict(color=BORDER, line_width=0), opacity=0.7)
-    fig1.add_bar(x=MOIS, y=ca_tot_r, name="Réel",
-                 marker=dict(color=[GREEN if r >= b else RED for r, b in zip(ca_tot_r, ca_tot_b)],
-                             line_width=0))
-    fig1.add_scatter(x=MOIS, y=pct_r, name="% réalisation", yaxis="y2",
-                     line=dict(color=GOLD, width=2.5, dash="dot"),
-                     mode="lines+markers",
-                     marker=dict(size=7, color=GOLD, line=dict(color=BG, width=2)))
-    fig1.update_layout(**layout_dark(
-        height=290, barmode="group",
-        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                   tickfont=dict(color=TEXT2, size=10),
-                   title=dict(text="k€", font=dict(color=TEXT3, size=10))),
-        yaxis2=dict(overlaying="y", side="right", range=[94, 108],
-                    gridcolor="rgba(0,0,0,0)", showgrid=False,
-                    tickfont=dict(color=GOLD, size=10), ticksuffix="%",
-                    title=dict(text="Réalisation", font=dict(color=GOLD, size=10))),
-    ))
-    st.plotly_chart(fig1, width='stretch')
+    # Graphique principal : budget + réel + % réalisation
+    t1a, t1b = st.columns([3, 1])
+    with t1a:
+        fig1 = go.Figure()
+        fig1.add_bar(x=MOIS, y=ca_tot_b, name="Budget",
+                     marker=dict(color=BORDER, line_width=0), opacity=0.65)
+        fig1.add_bar(x=MOIS, y=ca_tot_r, name="Réel",
+                     marker=dict(color=[GREEN if r >= b else RED
+                                        for r, b in zip(ca_tot_r, ca_tot_b)],
+                                 line_width=0),
+                     text=[f"{r/1000:.2f}M" for r in ca_tot_r],
+                     textposition="outside", textfont=dict(size=9, color=TEXT2))
+        fig1.add_scatter(x=MOIS, y=pct_r, name="% réalisation", yaxis="y2",
+                         line=dict(color=GOLD, width=2.5),
+                         mode="lines+markers",
+                         marker=dict(size=8, color=[GREEN if p >= 100 else RED for p in pct_r],
+                                     line=dict(color=BG, width=2)),
+                         text=[f"{p:.1f}%" for p in pct_r],
+                         textposition="top center",
+                         textfont=dict(size=8, color=GOLD))
+        fig1.update_layout(**layout_dark(
+            height=295, barmode="group",
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="k€", font=dict(color=TEXT3, size=10))),
+            yaxis2=dict(overlaying="y", side="right",
+                        range=[min(pct_r)*0.97, max(pct_r)*1.04],
+                        gridcolor="rgba(0,0,0,0)", showgrid=False,
+                        tickfont=dict(color=GOLD, size=10), ticksuffix="%",
+                        title=dict(text="Réalisation %", font=dict(color=GOLD, size=10))),
+        ))
+        st.plotly_chart(fig1, width='stretch')
+
+    with t1b:
+        # Écarts absolus k€ par mois
+        fig_ec = go.Figure(go.Bar(
+            x=ecart_k, y=MOIS, orientation="h",
+            marker=dict(color=[GREEN if e >= 0 else RED for e in ecart_k], line_width=0),
+            text=[f"{e:+.0f}" for e in ecart_k],
+            textposition="outside", textfont=dict(size=9, color=TEXT),
+        ))
+        fig_ec.add_vline(x=0, line=dict(color=BORDER, width=1))
+        fig_ec.update_layout(**layout_dark(
+            height=295, showlegend=False,
+            margin=dict(l=4, r=55, t=16, b=4),
+            xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
+                       zerolinecolor=BORDER,
+                       tickfont=dict(color=TEXT2, size=9),
+                       title=dict(text="Écart k€", font=dict(color=TEXT3, size=9))),
+            yaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=10)),
+        ))
+        st.plotly_chart(fig_ec, width='stretch')
 
     ca1, ca2 = st.columns(2)
     with ca1:
