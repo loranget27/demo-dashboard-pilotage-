@@ -215,6 +215,88 @@ ATEL_COLORS = [GOLD, TEAL, GREEN]
 PIE_COLORS  = [GOLD, TEAL, BLUE, GREEN, ORANGE, PURPLE]
 COMP_COLORS = [RED, TEAL, ORANGE, GOLD, TEXT3]
 
+# ── Données coûts de production détaillées ───────────────────────────────────
+VOL_TONNES = {"Chocolaterie": 42.0, "Sucrerie": 112.0, "Conditionnement": 95.0}
+
+# Coûts standards et réels par composante et par atelier (€/kg)
+COUT_STD = {
+    "Matières":      [3.50, 1.20, 0.35],
+    "Main d'œuvre":  [0.75, 0.38, 0.25],
+    "Énergie":       [0.50, 0.32, 0.08],
+    "Emballage":     [0.33, 0.13, 0.17],
+    "Frais fixes":   [0.25, 0.09, 0.04],
+}
+COUT_REEL_KG = {
+    "Matières":      [3.68, 1.28, 0.36],   # +hausse cacao
+    "Main d'œuvre":  [0.72, 0.36, 0.24],   # favorable
+    "Énergie":       [0.57, 0.37, 0.09],   # défavorable
+    "Emballage":     [0.34, 0.14, 0.18],
+    "Frais fixes":   [0.25, 0.09, 0.04],
+}
+
+# Variance globale par composante (k€/mois) = (réel - std) × volume
+vol_list = [VOL_TONNES[a] for a in ATELIERS]
+variance_comp = {
+    comp: sum(
+        (COUT_REEL_KG[comp][i] - COUT_STD[comp][i]) * vol_list[i]
+        for i in range(3)
+    )
+    for comp in COMPOSANTES
+}
+variance_totale = sum(variance_comp.values())
+
+# Coût total / kg réel vs standard par atelier
+cout_total_std_kg  = {a: sum(COUT_STD[c][i]  for c in COMPOSANTES) for i, a in enumerate(ATELIERS)}
+cout_total_reel_kg = {a: sum(COUT_REEL_KG[c][i] for c in COMPOSANTES) for i, a in enumerate(ATELIERS)}
+
+# CNQ — Coût de Non-Qualité (rebuts)
+CNQ_REBUT_PCT  = {"Chocolaterie": 2.5, "Sucrerie": 5.0, "Conditionnement": 1.5}
+CNQ_CIBLE_PCT  = {"Chocolaterie": 2.0, "Sucrerie": 4.0, "Conditionnement": 1.5}
+cnq_k = {a: cout_total[i] * CNQ_REBUT_PCT[a] / 100 for i, a in enumerate(ATELIERS)}
+cnq_total = sum(cnq_k.values())
+cnq_mensuel = np.array([
+    cnq_total * (1 + np.random.uniform(-0.15, 0.20)) for _ in MOIS
+])
+
+# Rendement matière
+RDT_MAT_REEL  = {"Chocolaterie": 94.5, "Sucrerie": 91.0, "Conditionnement": 98.5}
+RDT_MAT_CIBLE = {"Chocolaterie": 96.0, "Sucrerie": 93.0, "Conditionnement": 99.0}
+cout_perte_mat = {
+    a: (100 - RDT_MAT_REEL[a]) / 100 * cout_total[i] * cout_pct[i, 0] / 100
+    for i, a in enumerate(ATELIERS)
+}
+perte_mat_totale = sum(cout_perte_mat.values())
+
+# Productivité MO (kg/h)
+PROD_MO_REEL  = {"Chocolaterie": 145, "Sucrerie": 320, "Conditionnement": 850}
+PROD_MO_CIBLE = {"Chocolaterie": 155, "Sucrerie": 340, "Conditionnement": 900}
+
+# Efficience énergétique (kWh/tonne)
+KWH_TONNE_REEL  = {"Chocolaterie": 388, "Sucrerie": 185, "Conditionnement": 46}
+KWH_TONNE_CIBLE = {"Chocolaterie": 360, "Sucrerie": 165, "Conditionnement": 40}
+
+# Maintenance préventive vs curative (%)
+MAINT_PREV_PCT = {"Chocolaterie": 72, "Sucrerie": 58, "Conditionnement": 80}
+MAINT_CIBLE    = 75
+
+# Radar performance globale (scores 0-100 normalisés)
+def score(val, cible, inverse=False):
+    if inverse:
+        return max(0, min(100, 100 - (val - cible) / cible * 100 * 3))
+    return max(0, min(100, 100 - abs(val - cible) / cible * 100 * 2))
+
+RADAR_DIMS = ["TRS", "Qual. matière", "MO", "Énergie", "CNQ"]
+radar_scores = [
+    [
+        trs[i, M] / trs_cible[i] * 100,
+        RDT_MAT_REEL[a] / RDT_MAT_CIBLE[a] * 100,
+        PROD_MO_REEL[a] / PROD_MO_CIBLE[a] * 100,
+        KWH_TONNE_CIBLE[a] / KWH_TONNE_REEL[a] * 100,
+        CNQ_CIBLE_PCT[a] / CNQ_REBUT_PCT[a] * 100,
+    ]
+    for i, a in enumerate(ATELIERS)
+]
+
 # ── Données commerciales fictives ─────────────────────────────────────────────
 CLIENTS = [
     "Leclerc Réunion", "Carrefour Réunion", "Intermarché", "Système U",
@@ -797,28 +879,113 @@ with tab2:
 # TAB 3 — PRODUCTION & COÛTS
 # ════════════════════════════════════════════════════════════════════════════════
 with tab3:
-    sec("TRS par atelier — Octobre 2026")
-    g1, g2, g3 = st.columns(3)
+
+    # ── Bloc 1 : 6 KPI coûts critiques ───────────────────────────────────────
+    sec("KPI coûts de production — Octobre 2026")
+    pk1, pk2, pk3, pk4, pk5, pk6 = st.columns(6)
+    prod_kpis = [
+        (pk1, "Variance coûts vs budget",
+         f"{variance_totale:+.0f} k€",
+         f"{'Dépassement' if variance_totale > 0 else 'Économie'} vs standard",
+         variance_totale <= 0, "📊", GOLD),
+        (pk2, "CNQ — Non-Qualité",
+         f"{cnq_total:.0f} k€/mois",
+         f"Rebuts : {sum(CNQ_REBUT_PCT.values())/3:.1f}% moy. (cible {sum(CNQ_CIBLE_PCT.values())/3:.1f}%)",
+         cnq_total < 15, "⚠️", RED if cnq_total >= 15 else ORANGE),
+        (pk3, "Perte rendement matière",
+         f"{perte_mat_totale:.0f} k€/mois",
+         f"Rdt moy. {sum(RDT_MAT_REEL.values())/3:.1f}% vs cible {sum(RDT_MAT_CIBLE.values())/3:.1f}%",
+         perte_mat_totale < 10, "🌾", ORANGE),
+        (pk4, "Coût MO / kg — Sucrerie",
+         f"{COUT_REEL_KG['Main d\'œuvre'][1]:.2f} €/kg",
+         f"Std {COUT_STD['Main d\'œuvre'][1]:.2f} €/kg · {(COUT_REEL_KG['Main d\'œuvre'][1]-COUT_STD['Main d\'œuvre'][1])/COUT_STD['Main d\'œuvre'][1]*100:+.1f}%",
+         COUT_REEL_KG["Main d'œuvre"][1] <= COUT_STD["Main d'œuvre"][1], "👷", TEAL),
+        (pk5, "Énergie — Chocolaterie",
+         f"{KWH_TONNE_REEL['Chocolaterie']} kWh/t",
+         f"Cible {KWH_TONNE_CIBLE['Chocolaterie']} kWh/t · {(KWH_TONNE_REEL['Chocolaterie']-KWH_TONNE_CIBLE['Chocolaterie'])/KWH_TONNE_CIBLE['Chocolaterie']*100:+.1f}%",
+         KWH_TONNE_REEL["Chocolaterie"] <= KWH_TONNE_CIBLE["Chocolaterie"], "⚡", BLUE),
+        (pk6, "Maint. préventive moy.",
+         f"{sum(MAINT_PREV_PCT.values())/3:.0f}%",
+         f"Cible {MAINT_CIBLE}% · Sucrerie à {MAINT_PREV_PCT['Sucrerie']}% ⚠",
+         sum(MAINT_PREV_PCT.values())/3 >= MAINT_CIBLE, "🔧", PURPLE),
+    ]
+    for col, label, val, delta, up, icon, color in prod_kpis:
+        with col:
+            dc = GREEN if up else RED
+            arrow = "▲" if up else "▼"
+            glow = f"background:radial-gradient(ellipse at top,{color}18 0%,transparent 70%);"
+            col.markdown(f"""
+<div class="kpi" style="height:120px;">
+  <div class="kpi-top" style="background:{color};"></div>
+  <div class="kpi-glow" style="{glow}"></div>
+  <div class="kpi-icon">{icon}</div>
+  <div class="kpi-label" style="font-size:9px;">{label}</div>
+  <div class="kpi-val" style="font-size:20px;color:{dc};">{val}</div>
+  <div class="kpi-delta" style="color:{dc};font-size:10px;">{arrow}&nbsp;{delta}</div>
+</div>""", unsafe_allow_html=True)
+
+    # ── Bloc 2 : Variance coûts (Waterfall) ──────────────────────────────────
+    sec("Analyse des écarts — Réel vs Standard (k€/mois)")
+    budget_total = sum(
+        sum(COUT_STD[comp][i] * vol_list[i] for i in range(3))
+        for comp in COMPOSANTES
+    )
+    reel_total = sum(
+        sum(COUT_REEL_KG[comp][i] * vol_list[i] for i in range(3))
+        for comp in COMPOSANTES
+    )
+    wf_labels_v = ["Coût\nstandard"] + COMPOSANTES + ["Coût\nréel"]
+    wf_values_v = [budget_total] + list(variance_comp.values()) + [0]
+    wf_measures_v = ["absolute"] + ["relative"] * 5 + ["total"]
+    wf_text_v = [f"{budget_total:.0f}"] + \
+                [f"{v:+.1f}" for v in variance_comp.values()] + \
+                [f"{reel_total:.0f}"]
+
+    fig_wfv = go.Figure(go.Waterfall(
+        orientation="v", measure=wf_measures_v,
+        x=wf_labels_v, y=wf_values_v,
+        text=wf_text_v, textposition="outside",
+        textfont=dict(size=11, color=TEXT, family="Inter, Arial"),
+        connector=dict(line=dict(color=BORDER, width=1, dash="dot")),
+        increasing=dict(marker=dict(color=RED,  line_width=0)),
+        decreasing=dict(marker=dict(color=GREEN, line_width=0)),
+        totals=dict(marker=dict(color=GOLD, line_width=0)),
+    ))
+    fig_wfv.update_layout(**layout_dark(
+        height=295,
+        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
+                   zerolinecolor=BORDER,
+                   title=dict(text="k€/mois", font=dict(color=TEXT3, size=10)),
+                   tickfont=dict(color=TEXT2, size=10)),
+        xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                   tickfont=dict(color=TEXT2, size=10)),
+        annotations=[dict(
+            text="🟢 vert = économie vs standard &nbsp;&nbsp; 🔴 rouge = dépassement",
+            x=0.5, y=1.08, xref="paper", yref="paper",
+            showarrow=False, font=dict(size=9, color=TEXT3)
+        )]
+    ))
+    st.plotly_chart(fig_wfv, width='stretch')
+
+    # ── Bloc 3 : TRS gauges + Radar performance ───────────────────────────────
+    sec("TRS par atelier & Radar performance globale")
+    g1, g2, g3, g4 = st.columns([1, 1, 1, 1])
     for col, ci, (atelier, cible, acolor) in zip(
         [g1, g2, g3], range(3), zip(ATELIERS, trs_cible, ATEL_COLORS)
     ):
-        val    = trs[ci, M]
+        val = trs[ci, M]
         gcolor = GREEN if val >= cible + 3 else (GOLD if val >= cible else RED)
-        ecart_str = f"{val - cible:+.1f} pt vs cible"
-        fig_g  = go.Figure(go.Indicator(
+        fig_g = go.Figure(go.Indicator(
             mode="gauge+number",
             value=val,
-            number=dict(
-                suffix="%",
-                font=dict(size=52, color=gcolor, family="Inter, Arial"),
-                valueformat=".1f"
-            ),
+            number=dict(suffix="%", font=dict(size=46, color=gcolor, family="Inter, Arial"),
+                        valueformat=".1f"),
             title=dict(
-                text=f"<b style='font-size:13px;color:{TEXT};'>{atelier}</b>"
-                     f"<br><span style='font-size:10px;color:{TEXT2};'>"
-                     f"Cible {cible:.0f}% &nbsp;·&nbsp; "
-                     f"<span style='color:{gcolor};font-weight:700;'>{ecart_str}</span></span>",
-                font=dict(size=13, color=TEXT, family="Inter, Arial")
+                text=f"<b>{atelier}</b><br>"
+                     f"<span style='font-size:10px;color:{TEXT2};'>"
+                     f"Cible {cible:.0f}% · <span style='color:{gcolor};'>"
+                     f"{val-cible:+.1f}pt</span></span>",
+                font=dict(size=12, color=TEXT, family="Inter, Arial")
             ),
             domain=dict(x=[0, 1], y=[0, 1]),
             gauge=dict(
@@ -827,113 +994,186 @@ with tab3:
                 bar=dict(color=gcolor, thickness=0.3),
                 bgcolor=CARD2, borderwidth=1, bordercolor=BORDER,
                 steps=[
-                    dict(range=[60, 70],    color="#0D1521"),
+                    dict(range=[60, 70], color="#0D1521"),
                     dict(range=[70, cible], color="#131E2E"),
                     dict(range=[cible, 100], color="#0F2318"),
                 ],
                 threshold=dict(line=dict(color=acolor, width=3), thickness=0.85, value=cible)
             )
         ))
-        fig_g.update_layout(
-            height=240, margin=dict(l=20, r=20, t=20, b=0),
-            paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(family="Inter, Arial, sans-serif")
-        )
+        fig_g.update_layout(height=230, margin=dict(l=16, r=16, t=20, b=0),
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font=dict(family="Inter, Arial, sans-serif"))
         with col:
             st.plotly_chart(fig_g, width='stretch')
 
-    # ── Coût/kg KPI cards ──────────────────────────────────────────────────────
-    sec("Coût de production / kg — Octobre 2026")
-    ck1, ck2, ck3 = st.columns(3)
-    for col, (atelier, acolor) in zip([ck1, ck2, ck3], zip(ATELIERS, ATEL_COLORS)):
-        val_kg    = cout_kg[atelier][M]
-        cible_kg  = cout_kg_cible[atelier]
-        ecart_pct = (val_kg - cible_kg) / cible_kg * 100
+    with g4:
+        fig_rad = go.Figure()
+        for ci, (atelier, acolor) in enumerate(zip(ATELIERS, ATEL_COLORS)):
+            scores = radar_scores[ci] + [radar_scores[ci][0]]
+            dims   = RADAR_DIMS + [RADAR_DIMS[0]]
+            fig_rad.add_scatterpolar(
+                r=scores, theta=dims, name=atelier,
+                fill="toself", opacity=0.25,
+                line=dict(color=acolor, width=2),
+                marker=dict(size=5, color=acolor)
+            )
+        fig_rad.update_layout(
+            height=230, margin=dict(l=10, r=10, t=20, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            polar=dict(
+                bgcolor=CARD2,
+                radialaxis=dict(range=[0, 110], gridcolor=BORDER,
+                                tickfont=dict(color=TEXT3, size=8),
+                                linecolor=BORDER, ticksuffix=""),
+                angularaxis=dict(gridcolor=BORDER, linecolor=BORDER,
+                                 tickfont=dict(color=TEXT2, size=9))
+            ),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=9, color=TEXT2),
+                        x=0.5, y=-0.1, xanchor="center", orientation="h"),
+            font=dict(family="Inter, Arial, sans-serif", color=TEXT2)
+        )
+        st.plotly_chart(fig_rad, width='stretch')
+
+    # ── Bloc 4 : Coûts std vs réels par composante ───────────────────────────
+    sec("Coût / kg — Standard vs Réel par composante et par atelier")
+    cv1, cv2, cv3 = st.columns(3)
+    for col, (ai, atelier, acolor) in zip([cv1, cv2, cv3],
+                                           enumerate(zip(ATELIERS, ATEL_COLORS))):
+        atelier, acolor = atelier
+        std_vals  = [COUT_STD[c][ai]      for c in COMPOSANTES]
+        reel_vals = [COUT_REEL_KG[c][ai]  for c in COMPOSANTES]
+        total_std  = sum(std_vals)
+        total_reel = sum(reel_vals)
+        delta_total = total_reel - total_std
+        dc = RED if delta_total > 0 else GREEN
+
+        fig_cv = go.Figure()
+        fig_cv.add_bar(x=COMPOSANTES, y=std_vals, name="Standard",
+                       marker=dict(color=BORDER, line_width=0, opacity=0.7),
+                       text=[f"{v:.2f}" for v in std_vals],
+                       textposition="outside", textfont=dict(size=8, color=TEXT3))
+        fig_cv.add_bar(x=COMPOSANTES, y=reel_vals, name="Réel",
+                       marker=dict(color=[RED if r > s else GREEN
+                                          for r, s in zip(reel_vals, std_vals)],
+                                   line_width=0),
+                       text=[f"{v:.2f}" for v in reel_vals],
+                       textposition="outside", textfont=dict(size=8, color=TEXT))
+        fig_cv.update_layout(**layout_dark(
+            height=255, barmode="group", showlegend=(ai == 0),
+            title=dict(
+                text=f"<b style='color:{acolor};'>{atelier}</b>"
+                     f"<br><span style='font-size:9px;color:{dc};'>"
+                     f"Total {total_reel:.2f} vs std {total_std:.2f} €/kg "
+                     f"({delta_total:+.3f})</span>",
+                font=dict(size=11, color=TEXT), x=0, pad=dict(l=0)
+            ),
+            margin=dict(l=4, r=4, t=50, b=4),
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=9),
+                       title=dict(text="€/kg", font=dict(color=TEXT3, size=9))),
+            xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=9), tickangle=-15),
+        ))
         with col:
-            st.markdown(
-                kpi_cost(f"Coût/kg — {atelier}", f"{val_kg:.2f} €/kg",
-                         f"{cible_kg:.2f} €/kg", ecart_pct, "€/kg", acolor),
-                unsafe_allow_html=True
-            )
+            st.plotly_chart(fig_cv, width='stretch')
 
-    # ── Évolution coût/kg avec zone cible ─────────────────────────────────────
-    sec("Évolution coût / kg — 10 mois 2026")
-    fig_ck = go.Figure()
-    for atelier, acolor in zip(ATELIERS, ATEL_COLORS):
-        vals = cout_kg[atelier]
-        cible = cout_kg_cible[atelier]
-        fig_ck.add_scatter(
-            x=MOIS, y=vals, name=atelier,
-            line=dict(color=acolor, width=2.5), mode="lines+markers",
-            marker=dict(size=7, color=[RED if v > cible * 1.03 else acolor for v in vals],
-                        line=dict(color=BG, width=2)),
-            hovertemplate=f"{atelier}<br>%{{y:.3f}} €/kg<extra></extra>"
-        )
-        fig_ck.add_shape(
-            type="line", x0=0, x1=1, xref="paper",
-            y0=cible, y1=cible,
-            line=dict(color=acolor, width=1.5, dash="dash")
-        )
-        fig_ck.add_annotation(
-            x=MOIS[-1], y=cible, text=f"  cible {cible:.2f}",
-            xanchor="left", showarrow=False,
-            font=dict(size=9, color=acolor)
-        )
-    fig_ck.update_layout(**layout_dark(
-        height=270, margin=dict(l=4, r=80, t=16, b=4),
-        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                   tickfont=dict(color=TEXT2, size=10),
-                   title=dict(text="€/kg", font=dict(color=TEXT3, size=10))),
-        xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                   tickfont=dict(color=TEXT2, size=10)),
-    ))
-    st.plotly_chart(fig_ck, width='stretch')
+    # ── Bloc 5 : CNQ + Rendement matière + Évolution coût/kg ─────────────────
+    sec("Coût de Non-Qualité, Rendement matière & Évolution coût/kg")
+    b5a, b5b, b5c = st.columns(3)
 
-    # ── Décomposition coûts + TRS trend ───────────────────────────────────────
-    pa1, pa2 = st.columns(2)
-    with pa1:
-        sec("Décomposition des coûts par atelier (k€)")
-        fig5 = go.Figure()
-        for ci, (comp, cc) in enumerate(zip(COMPOSANTES, COMP_COLORS)):
-            vals_comp = [cout_total[ai] * cout_pct[ai, ci] / 100 for ai in range(3)]
-            fig5.add_bar(
-                x=ATELIERS, y=vals_comp, name=comp,
-                marker=dict(color=cc, line_width=0),
-                text=[f"{v:.0f}" for v in vals_comp],
-                textposition="inside", textfont=dict(size=9, color=BG)
-            )
-        fig5.update_layout(**layout_dark(
-            height=265, barmode="stack",
+    with b5a:
+        # CNQ et rebut par atelier
+        cnq_vals    = [cnq_k[a] for a in ATELIERS]
+        rebut_vals  = [CNQ_REBUT_PCT[a] for a in ATELIERS]
+        rebut_cible = [CNQ_CIBLE_PCT[a]  for a in ATELIERS]
+        fig_cnq = go.Figure()
+        fig_cnq.add_bar(x=ATELIERS, y=cnq_vals, name="CNQ (k€)",
+                        marker=dict(
+                            color=[RED if cnq_k[a] > cnq_k[a]*0.9 else ORANGE for a in ATELIERS],
+                            line_width=0),
+                        text=[f"{v:.1f} k€" for v in cnq_vals],
+                        textposition="outside", textfont=dict(color=TEXT, size=10))
+        fig_cnq.add_scatter(x=ATELIERS, y=rebut_vals, name="Taux rebut %",
+                            yaxis="y2", mode="markers",
+                            marker=dict(size=12, color=ORANGE, symbol="diamond",
+                                        line=dict(color=BG, width=2)))
+        fig_cnq.add_scatter(x=ATELIERS, y=rebut_cible, name="Cible rebut",
+                            yaxis="y2", mode="markers",
+                            marker=dict(size=8, color=GREEN, symbol="line-ew-open",
+                                        line=dict(color=GREEN, width=2)))
+        fig_cnq.update_layout(**layout_dark(
+            height=255,
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                       tickfont=dict(color=TEXT2, size=10),
-                       title=dict(text="k€", font=dict(color=TEXT3, size=10))),
-            xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=9),
+                       title=dict(text="CNQ k€", font=dict(color=TEXT3, size=9))),
+            yaxis2=dict(overlaying="y", side="right", range=[0, 8],
+                        ticksuffix="%", showgrid=False,
+                        tickfont=dict(color=ORANGE, size=9),
+                        title=dict(text="Rebut %", font=dict(color=ORANGE, size=9))),
+            xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
                        tickfont=dict(color=TEXT2, size=10)),
         ))
-        st.plotly_chart(fig5, width='stretch')
+        st.plotly_chart(fig_cnq, width='stretch')
 
-    with pa2:
-        sec("Évolution TRS mensuel par atelier")
-        fig4 = go.Figure()
-        for ci, (atelier, acolor, cible) in enumerate(zip(ATELIERS, ATEL_COLORS, trs_cible)):
-            fig4.add_scatter(
-                x=MOIS, y=trs[ci], name=atelier,
+    with b5b:
+        # Rendement matière réel vs cible
+        rdt_vals   = [RDT_MAT_REEL[a]  for a in ATELIERS]
+        rdt_cibles = [RDT_MAT_CIBLE[a] for a in ATELIERS]
+        rdt_colors = [GREEN if rdt_vals[i] >= rdt_cibles[i] else RED for i in range(3)]
+        fig_rdt = go.Figure()
+        fig_rdt.add_bar(x=ATELIERS, y=rdt_vals, name="Rendement réel",
+                        marker=dict(color=rdt_colors, line_width=0),
+                        text=[f"{v:.1f}%" for v in rdt_vals],
+                        textposition="outside", textfont=dict(color=TEXT, size=10))
+        for i, (a, c) in enumerate(zip(ATELIERS, rdt_cibles)):
+            fig_rdt.add_shape(type="line",
+                              x0=i-0.4, x1=i+0.4,
+                              y0=c, y1=c,
+                              line=dict(color=GOLD, width=2.5))
+        fig_rdt.update_layout(**layout_dark(
+            height=255, showlegend=False,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       range=[88, 101], ticksuffix="%",
+                       tickfont=dict(color=TEXT2, size=9),
+                       title=dict(text="Rendement matière %", font=dict(color=TEXT3, size=9))),
+            xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                       tickfont=dict(color=TEXT2, size=10)),
+            annotations=[dict(text="━ Cible (doré)", x=0.98, y=1.06,
+                              xref="paper", yref="paper", showarrow=False,
+                              font=dict(size=9, color=GOLD))]
+        ))
+        st.plotly_chart(fig_rdt, width='stretch')
+
+    with b5c:
+        # Évolution coût/kg avec cibles
+        fig_ck = go.Figure()
+        for atelier, acolor in zip(ATELIERS, ATEL_COLORS):
+            vals  = cout_kg[atelier]
+            cible = cout_kg_cible[atelier]
+            fig_ck.add_scatter(
+                x=MOIS, y=vals, name=atelier,
                 line=dict(color=acolor, width=2.5), mode="lines+markers",
-                marker=dict(size=7, color=acolor, line=dict(color=BG, width=2))
+                marker=dict(size=6,
+                            color=[RED if v > cible*1.03 else acolor for v in vals],
+                            line=dict(color=BG, width=2)),
+                hovertemplate=f"{atelier}<br>%{{y:.3f}} €/kg<extra></extra>"
             )
-            fig4.add_shape(type="line", x0=0, x1=1, xref="paper",
-                           y0=cible, y1=cible,
-                           line=dict(color=acolor, width=1, dash="dot"))
-        fig4.update_layout(**layout_dark(
-            height=265, margin=dict(l=4, r=50, t=16, b=4),
+            fig_ck.add_shape(type="line", x0=0, x1=1, xref="paper",
+                             y0=cible, y1=cible,
+                             line=dict(color=acolor, width=1.5, dash="dash"))
+            fig_ck.add_annotation(x=MOIS[-1], y=cible, text=f"  {cible:.2f}",
+                                  xanchor="left", showarrow=False,
+                                  font=dict(size=9, color=acolor))
+        fig_ck.update_layout(**layout_dark(
+            height=255, margin=dict(l=4, r=55, t=16, b=4),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                       range=[60, 100], ticksuffix="%",
-                       tickfont=dict(color=TEXT2, size=10),
-                       title=dict(text="TRS %", font=dict(color=TEXT3, size=10))),
+                       tickfont=dict(color=TEXT2, size=9),
+                       title=dict(text="€/kg", font=dict(color=TEXT3, size=9))),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                       tickfont=dict(color=TEXT2, size=10)),
+                       tickfont=dict(color=TEXT2, size=9)),
         ))
-        st.plotly_chart(fig4, width='stretch')
+        st.plotly_chart(fig_ck, width='stretch')
 
 # ════════════════════════════════════════════════════════════════════════════════
 # TAB 4 — FISCALITÉ
