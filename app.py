@@ -908,7 +908,9 @@ with tab2:
             x=cl_s, y=cum_pct, name="CA cumulé %", yaxis="y2",
             line=dict(color=PURPLE, width=2.5, dash="dot"),
             mode="lines+markers",
-            marker=dict(size=7, color=PURPLE, line=dict(color=BG, width=2))
+            fill="tozeroy", fillcolor="rgba(167,139,250,0.07)",
+            marker=dict(size=7, color=PURPLE, line=dict(color=BG, width=2)),
+            hovertemplate="<b>%{x}</b><br>Cumul CA : <b>%{y:.1f}%</b><extra></extra>"
         )
         if len(ca_s) >= 2:
             fig_par.add_hline(y=80, line=dict(color=PURPLE, width=1, dash="dash"),
@@ -917,6 +919,7 @@ with tab2:
                                               xanchor="left"))
         fig_par.update_layout(**layout_dark(
             height=295,
+            title=dict(text="Pareto CA clients — Loi 80/20", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="CA k€", font=dict(color=TEXT3, size=10))),
@@ -964,6 +967,7 @@ with tab2:
                                    marker=dict(size=10, color=cc), showlegend=True)
         fig_sc.update_layout(**layout_dark(
             height=295,
+            title=dict(text="Matrice clients — Volume vs Marge contributive", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        title=dict(text="CA (k€)", font=dict(color=TEXT3, size=10)),
                        tickfont=dict(color=TEXT2, size=10)),
@@ -990,17 +994,21 @@ with tab2:
         bar_neg_c = [GREEN if m > 25 else (GOLD if m > 15 else RED) for m in marge_nego]
         fig_neg = go.Figure()
         fig_neg.add_bar(x=GAMMES, y=pv_plancher, name="Prix plancher (seuil rentabilité)",
-                        marker=dict(color=BORDER, line_width=0))
+                        marker=dict(color=BORDER, line_width=0),
+                        hovertemplate="<b>%{x}</b><br>Prix plancher : %{y:.2f} €/kg<extra></extra>")
         fig_neg.add_bar(x=GAMMES, y=marge_nego_abs, name="Marge de négociation disponible",
                         marker=dict(color=bar_neg_c, line_width=0),
                         text=[f"-{m:.0f}%" for m in marge_nego],
-                        textposition="inside", textfont=dict(size=10, color=BG))
+                        textposition="inside", textfont=dict(size=10, color=BG),
+                        hovertemplate="<b>%{x}</b><br>Marge disponible : %{y:.2f} €/kg<extra></extra>")
         fig_neg.add_scatter(x=GAMMES, y=pv_moyen, name="Prix moyen pratiqué",
                             mode="markers",
                             marker=dict(size=10, color=TEXT, symbol="diamond",
-                                        line=dict(color=BG, width=2)))
+                                        line=dict(color=BG, width=2)),
+                            hovertemplate="<b>%{x}</b><br>Prix moyen pratiqué : %{y:.2f} €/kg<extra></extra>")
         fig_neg.update_layout(**layout_dark(
             height=295, barmode="stack",
+            title=dict(text="Marge de négociation — PV moyen vs plancher rentabilité", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="€/kg", font=dict(color=TEXT3, size=10))),
@@ -1021,12 +1029,14 @@ with tab2:
                 marker=dict(color=dso_colors, line_width=0),
                 text=[f"{d} j" for d in dso_f],
                 textposition="outside", textfont=dict(color=TEXT, size=10),
+                hovertemplate="<b>%{x}</b><br>DSO : <b>%{y:.0f} jours</b><extra></extra>",
             ))
             fig_dso.add_hline(y=45, line=dict(color=ORANGE, width=1.5, dash="dash"),
-                              annotation_text=" Seuil 45j",
+                              annotation_text=" Seuil alerte 45j",
                               annotation=dict(font=dict(color=ORANGE, size=9)))
             fig_dso.update_layout(**layout_dark(
                 height=255, showlegend=False,
+                title=dict(text="DSO par client — Délai moyen encaissement", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
                 yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                            ticksuffix=" j", range=[0, 70],
                            tickfont=dict(color=TEXT2, size=10)),
@@ -1039,16 +1049,19 @@ with tab2:
         sec("Commandes vs prévisions mensuelles (k€)")
         fig_cmd = go.Figure()
         fig_cmd.add_bar(x=MOIS, y=cmd_prev, name="Prévisions",
-                        marker=dict(color=BORDER, line_width=0), opacity=0.6)
+                        marker=dict(color=BORDER, line_width=0), opacity=0.6,
+                        hovertemplate="<b>%{x}</b><br>Prévisions : %{y:.0f} k€<extra></extra>")
         fig_cmd.add_bar(
             x=MOIS, y=cmd_real, name="Réalisé",
             marker=dict(color=[GREEN if r >= p else RED
                                 for r, p in zip(cmd_real, cmd_prev)], line_width=0),
             text=[f"{r-p:+.0f}" for r, p in zip(cmd_real, cmd_prev)],
-            textposition="outside", textfont=dict(size=9, color=TEXT2)
+            textposition="outside", textfont=dict(size=9, color=TEXT2),
+            hovertemplate="<b>%{x}</b><br>Réalisé : %{y:.0f} k€<extra></extra>",
         )
         fig_cmd.update_layout(**layout_dark(
             height=255, barmode="group",
+            title=dict(text="Carnet de commandes vs prévisions mensuelles", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€", font=dict(color=TEXT3, size=10))),
@@ -1522,6 +1535,7 @@ with tab4:
     )
     fig_wf.update_layout(**layout_dark(
         height=320,
+        title=dict(text="Calcul de l'IS — Du résultat comptable au résultat fiscal", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
         yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
                    zerolinecolor=BORDER, zerolinewidth=1,
                    tickfont=dict(color=TEXT2, size=10),
@@ -1547,10 +1561,12 @@ with tab4:
             y=[charges_pat_brut, exo_lodeom, charges_pat_nettes],
             marker=dict(color=[TEXT3, GREEN, TEAL], line_width=0),
             text=[f"{v:.0f} k€" for v in [charges_pat_brut, exo_lodeom, charges_pat_nettes]],
-            textposition="outside", textfont=dict(color=TEXT, size=11)
+            textposition="outside", textfont=dict(color=TEXT, size=11),
+            hovertemplate="<b>%{x}</b><br>Montant : <b>%{y:.0f} k€</b><extra></extra>",
         )
         fig_cs.update_layout(**layout_dark(
             height=265, showlegend=False,
+            title=dict(text="Charges sociales — Impact exonération LODEOM (DOM)", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€", font=dict(color=TEXT3, size=10))),
@@ -1568,16 +1584,19 @@ with tab4:
                 color=[GREEN if v > 0 else RED for v in result_mensuel],
                 line_width=0
             ),
-            hovertemplate="%{x}<br>%{y:.0f} k€<extra></extra>"
+            hovertemplate="<b>%{x}</b><br>Résultat : <b>%{y:.0f} k€</b><extra></extra>",
         )
         fig_rm.add_scatter(
             x=MOIS,
             y=[result_mensuel[:i+1].mean() for i in range(len(MOIS))],
             name="Moyenne YTD", mode="lines",
-            line=dict(color=GOLD, width=2, dash="dot")
+            fill="tozeroy", fillcolor="rgba(167,139,250,0.06)",
+            line=dict(color=GOLD, width=2, dash="dot"),
+            hovertemplate="<b>%{x}</b><br>Moyenne YTD : <b>%{y:.0f} k€</b><extra></extra>",
         )
         fig_rm.update_layout(**layout_dark(
             height=265,
+            title=dict(text="Résultat mensuel avant IS — Base calcul fiscal", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
                        zerolinecolor=BORDER, zerolinewidth=1,
                        tickfont=dict(color=TEXT2, size=10),
