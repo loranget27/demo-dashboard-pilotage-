@@ -1232,6 +1232,7 @@ with tab3:
     ))
     fig_wfv.update_layout(**layout_dark(
         height=295,
+        title=dict(text="Variance coûts — Standard vs Réel (k€/mois)", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
         yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
                    zerolinecolor=BORDER,
                    title=dict(text="k€/mois", font=dict(color=TEXT3, size=10)),
@@ -1298,8 +1299,11 @@ with tab3:
                 marker=dict(size=5, color=acolor)
             )
         fig_rad.update_layout(
-            height=230, margin=dict(l=10, r=10, t=20, b=10),
+            height=230, margin=dict(l=10, r=10, t=36, b=10),
             paper_bgcolor="rgba(0,0,0,0)",
+            title=dict(text="Performance globale — Radar multi-critères", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
+            hoverlabel=dict(bgcolor=CARD, bordercolor=BORDER, font=dict(size=11, color=TEXT, family="Inter, Arial, sans-serif")),
+            modebar=dict(bgcolor="rgba(0,0,0,0)", color=TEXT3, activecolor=GOLD),
             polar=dict(
                 bgcolor=CARD2,
                 radialaxis=dict(range=[0, 110], gridcolor=BORDER,
@@ -1371,7 +1375,8 @@ with tab3:
                             color=[RED if cnq_k[a] > cnq_k[a]*0.9 else ORANGE for a in ATELIERS],
                             line_width=0),
                         text=[f"{v:.1f} k€" for v in cnq_vals],
-                        textposition="outside", textfont=dict(color=TEXT, size=10))
+                        textposition="outside", textfont=dict(color=TEXT, size=10),
+                        hovertemplate="%{x}<br>CNQ : %{y:.1f} k€<extra></extra>")
         fig_cnq.add_scatter(x=ATELIERS, y=rebut_vals, name="Taux rebut %",
                             yaxis="y2", mode="markers",
                             marker=dict(size=12, color=ORANGE, symbol="diamond",
@@ -1382,6 +1387,7 @@ with tab3:
                                         line=dict(color=GREEN, width=2)))
         fig_cnq.update_layout(**layout_dark(
             height=255,
+            title=dict(text="Coût de Non-Qualité & Taux de rebut", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=9),
                        title=dict(text="CNQ k€", font=dict(color=TEXT3, size=9))),
@@ -1411,6 +1417,7 @@ with tab3:
                               line=dict(color=GOLD, width=2.5))
         fig_rdt.update_layout(**layout_dark(
             height=255, showlegend=False,
+            title=dict(text="Rendement matière — Réel vs Cible (%)", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        range=[88, 101], ticksuffix="%",
                        tickfont=dict(color=TEXT2, size=9),
@@ -1444,7 +1451,8 @@ with tab3:
                                   xanchor="left", showarrow=False,
                                   font=dict(size=9, color=acolor))
         fig_ck.update_layout(**layout_dark(
-            height=255, margin=dict(l=4, r=55, t=16, b=4),
+            height=255, margin=dict(l=4, r=55, t=36, b=4),
+            title=dict(text="Évolution coût de revient / kg — par atelier", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=9),
                        title=dict(text="€/kg", font=dict(color=TEXT3, size=9))),
@@ -1722,15 +1730,18 @@ with tab5:
     with ms1:
         fig_ms = go.Figure()
         fig_ms.add_bar(x=MOIS, y=ms_bud_arr, name="Budget",
-                       marker=dict(color=BORDER, line_width=0), opacity=0.6)
+                       marker=dict(color=BORDER, line_width=0), opacity=0.6,
+                       hovertemplate="%{x}<br>Budget : %{y:.0f} k€<extra></extra>")
         fig_ms.add_bar(x=MOIS, y=ms_reel_mois, name="Réel",
                        marker=dict(color=[RED if r > b else GREEN
                                           for r, b in zip(ms_reel_mois, ms_bud_arr)],
                                    line_width=0),
                        text=[f"{r-b:+.0f}" for r, b in zip(ms_reel_mois, ms_bud_arr)],
-                       textposition="outside", textfont=dict(size=9, color=TEXT2))
+                       textposition="outside", textfont=dict(size=9, color=TEXT2),
+                       hovertemplate="%{x}<br>Réel : %{y:.0f} k€<extra></extra>")
         fig_ms.update_layout(**layout_dark(
             height=265, barmode="group",
+            title=dict(text="Masse salariale — Budget vs Réel (k€)", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€", font=dict(color=TEXT3, size=10))),
@@ -1756,6 +1767,7 @@ with tab5:
                           annotation=dict(font=dict(color=GOLD, size=9)))
         fig_abs.update_layout(**layout_dark(
             height=265, barmode="stack",
+            title=dict(text="Absentéisme par motif et par atelier (%)", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        ticksuffix="%",
                        tickfont=dict(color=TEXT2, size=10),
@@ -1781,6 +1793,7 @@ with tab5:
                         textposition="inside", textfont=dict(color=BG, size=10))
         fig_pyr.update_layout(**layout_dark(
             height=265, barmode="relative",
+            title=dict(text="Pyramide des âges — Hommes / Femmes", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=True,
                        zerolinecolor=BORDER,
                        tickvals=[-20, -15, -10, -5, 0, 5, 10, 15],
@@ -1810,8 +1823,11 @@ with tab5:
                                 x=0.5, y=0.5, showarrow=False,
                                 font=dict(size=13, color=TEXT, family="Inter, Arial"))
         fig_cont.update_layout(
-            height=265, margin=dict(l=0, r=0, t=20, b=0),
+            height=265, margin=dict(l=0, r=0, t=36, b=0),
             paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+            title=dict(text="Répartition par type de contrat", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
+            hoverlabel=dict(bgcolor=CARD, bordercolor=BORDER, font=dict(size=11, color=TEXT, family="Inter, Arial, sans-serif")),
+            modebar=dict(bgcolor="rgba(0,0,0,0)", color=TEXT3, activecolor=GOLD),
             font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
         )
         st.plotly_chart(fig_cont, width='stretch')
@@ -1827,8 +1843,11 @@ with tab5:
                                x=0.5, y=0.5, showarrow=False,
                                font=dict(size=10, color=TEXT2, family="Inter, Arial"))
         fig_cat.update_layout(
-            height=265, margin=dict(l=0, r=0, t=20, b=0),
+            height=265, margin=dict(l=0, r=0, t=36, b=0),
             paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+            title=dict(text="Catégories socioprofessionnelles", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
+            hoverlabel=dict(bgcolor=CARD, bordercolor=BORDER, font=dict(size=11, color=TEXT, family="Inter, Arial, sans-serif")),
+            modebar=dict(bgcolor="rgba(0,0,0,0)", color=TEXT3, activecolor=GOLD),
             font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
         )
         st.plotly_chart(fig_cat, width='stretch')
@@ -1926,6 +1945,7 @@ with tab5:
         )
         fig_hs.update_layout(**layout_dark(
             height=265, showlegend=False,
+            title=dict(text="Heures supplémentaires par atelier — YTD", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="Heures sup. YTD", font=dict(color=TEXT3, size=10))),
@@ -1945,7 +1965,8 @@ with tab5:
     fig_abm.add_bar(
         x=MOIS, y=abs_mensuel,
         marker=dict(color=[RED if v > abs_cible else GREEN for v in abs_mensuel], line_width=0),
-        hovertemplate="%{x}<br>Absentéisme : %{y:.1f}%<extra></extra>"
+        name="Absentéisme",
+        hovertemplate="%{x}<br>Absentéisme : <b>%{y:.1f}%</b><br>Cible : " + f"{abs_cible}%" + "<extra></extra>"
     )
     fig_abm.add_hline(y=abs_cible, line=dict(color=GOLD, width=1.5, dash="dash"),
                       annotation_text=f" Cible {abs_cible}%",
@@ -1958,6 +1979,7 @@ with tab5:
     )
     fig_abm.update_layout(**layout_dark(
         height=230,
+        title=dict(text="Évolution mensuelle du taux d'absentéisme global", font=dict(size=11, color=TEXT3), x=0.01, y=0.99, xanchor="left"),
         yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                    ticksuffix="%", range=[2, 7],
                    tickfont=dict(color=TEXT2, size=10),
