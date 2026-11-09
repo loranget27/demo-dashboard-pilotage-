@@ -217,29 +217,29 @@ COMP_COLORS = [RED, TEAL, ORANGE, GOLD, TEXT3]
 
 # ── Données commerciales fictives ─────────────────────────────────────────────
 CLIENTS = [
-    "Leclerc Réunion", "Carrefour Réunion", "Jumbo Score",
+    "Leclerc Réunion", "Carrefour Réunion", "Intermarché", "Système U",
     "Export Mayotte", "Export Madagascar", "B2B Industrie",
     "Export Métropole", "Restauration locale"
 ]
 CANAUX = ["GMS Locale", "Export DOM/TOM", "Export International", "B2B Local"]
 
-ca_clients_ytd  = np.array([412, 338, 295, 198, 172, 148, 135, 118])
-mg_clients      = np.array([31,   29,  27,  38,  43,  26,  36,  47])   # taux marge %
-canal_clients   = ["GMS", "GMS", "GMS", "Export", "Export", "B2B", "Export", "B2B"]
-dso_clients     = np.array([34,   38,  41,  52,  58,  28,  45,  22])    # jours
+ca_clients_ytd  = np.array([412, 338, 285, 248, 198, 172, 148, 135, 118])
+mg_clients      = np.array([ 31,  29,  28,  27,  38,  43,  26,  36,  47])
+canal_clients   = ["GMS","GMS","GMS","GMS","Export","Export","B2B","Export","B2B"]
+dso_clients     = np.array([ 34,  38,  40,  36,   52,   58,  28,   45,  22])
 
-ca_canaux_ytd = np.array([1_045, 370, 307, 266])   # k€
+ca_canaux_ytd = np.array([1_283, 370, 307, 266])   # k€  (GMS mis à jour)
 
 # Prix de vente moyen vs plancher (coût + marge min 20%)
 pv_moyen    = np.array([8.60,  6.30, 3.85, 2.95, 12.80, 29.50])
 pv_plancher = np.array([6.80,  5.10, 3.20, 2.40,  9.80, 22.00])
-marge_nego  = (pv_moyen - pv_plancher) / pv_moyen * 100   # marge de négociation disponible %
+marge_nego  = (pv_moyen - pv_plancher) / pv_moyen * 100
 
 # Carnet de commandes vs prévisions
 cmd_prev = np.array([440, 450, 462, 468, 460, 475, 482, 488, 492, 498])
 cmd_real = cmd_prev * (1 + np.random.uniform(-0.04, 0.07, 10))
-taux_transfo   = 68.4   # % devis → commande
-carnet_total   = 2_840  # k€ confirmé
+taux_transfo   = 68.4
+carnet_total   = 2_840
 dso_moy        = float(np.average(dso_clients, weights=ca_clients_ytd))
 cmd_pondere    = float(np.sum(cmd_real))
 
@@ -465,108 +465,159 @@ with tab1:
 # TAB 2 — VUE COMMERCIALE
 # ════════════════════════════════════════════════════════════════════════════════
 with tab2:
-    sec("Indicateurs commerciaux — YTD Jan–Oct 2026")
+    # ── Barre de filtres interactive ──────────────────────────────────────────
+    st.markdown(f"""
+<div style="background:{CARD};border:1px solid {BORDER};border-radius:10px;
+            padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;
+            position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;
+              background:linear-gradient(90deg,{GOLD},{TEAL},transparent);"></div>
+  <span style="font-size:10px;font-weight:700;color:{GOLD};text-transform:uppercase;
+               letter-spacing:1.5px;white-space:nowrap;">Filtres actifs</span>
+</div>""", unsafe_allow_html=True)
+
+    fil1, fil2, fil3 = st.columns([2, 2, 1])
+    with fil1:
+        canaux_sel = st.multiselect(
+            "Canal de distribution",
+            options=["GMS", "Export", "B2B"],
+            default=["GMS", "Export", "B2B"],
+            key="canal_filter"
+        )
+    with fil2:
+        clients_sel = st.multiselect(
+            "Clients",
+            options=CLIENTS,
+            default=CLIENTS,
+            key="client_filter"
+        )
+    with fil3:
+        periode_sel = st.selectbox(
+            "Période",
+            options=["YTD Jan–Oct", "T3 2026", "T2 2026", "T1 2026"],
+            key="periode_filter"
+        )
+
+    # Mask filtres
+    if not canaux_sel:
+        canaux_sel = ["GMS", "Export", "B2B"]
+    if not clients_sel:
+        clients_sel = CLIENTS
+
+    mask = np.array([
+        c in canaux_sel and CLIENTS[i] in clients_sel
+        for i, c in enumerate(canal_clients)
+    ])
+    ca_f   = ca_clients_ytd[mask]
+    mg_f   = mg_clients[mask]
+    cl_f   = [CLIENTS[i] for i in range(len(CLIENTS)) if mask[i]]
+    dso_f  = dso_clients[mask]
+    can_f  = [canal_clients[i] for i in range(len(canal_clients)) if mask[i]]
+
+    # ── KPI dynamiques ────────────────────────────────────────────────────────
+    sec(f"Indicateurs commerciaux — {periode_sel}")
+    dso_moy_f = float(np.average(dso_f, weights=ca_f)) if ca_f.sum() > 0 else 0
     cc1, cc2, cc3, cc4 = st.columns(4)
     com_kpis = [
-        (cc1, "Carnet de commandes", f"{carnet_total:,.0f} k€",
-         "Commandes confirmées YTD", True, "📋", GOLD),
+        (cc1, "CA sélection", f"{ca_f.sum():.0f} k€",
+         f"{ca_f.sum()/ca_clients_ytd.sum()*100:.0f}% du portefeuille total",
+         True, "💰", GOLD),
         (cc2, "Taux de transformation", f"{taux_transfo:.1f}%",
          "Devis → Commandes signées", True, "🎯", GREEN),
-        (cc3, "DSO moyen pondéré", f"{dso_moy:.0f} j",
-         "Délai moyen encaissement", dso_moy < 45, "⏱", TEAL),
-        (cc4, "Réalisation vs prév.", f"{cmd_real.sum()/cmd_prev.sum()*100:.1f}%",
-         f"{(cmd_real.sum()-cmd_prev.sum())/1000:+.0f} k€ vs objectif",
-         cmd_real.sum() >= cmd_prev.sum(), "📈", BLUE),
+        (cc3, "DSO moyen pondéré", f"{dso_moy_f:.0f} j",
+         "Délai moyen encaissement", dso_moy_f < 45, "⏱", TEAL),
+        (cc4, "Marge contributive moy.", f"{float(np.average(mg_f, weights=ca_f)):.1f}%" if ca_f.sum() > 0 else "—",
+         f"vs {float(np.average(mg_clients, weights=ca_clients_ytd)):.1f}% portefeuille total",
+         float(np.average(mg_f, weights=ca_f)) >= float(np.average(mg_clients, weights=ca_clients_ytd)) if ca_f.sum() > 0 else True,
+         "💎", BLUE),
     ]
     for col, label, val, delta, up, icon, color in com_kpis:
         with col:
             st.markdown(kpi(label, val, delta, icon, up, color), unsafe_allow_html=True)
 
-    # ── Pareto clients ────────────────────────────────────────────────────────
-    sec("Analyse portefeuille clients — CA & Marge contributive YTD")
-    idx_sort = np.argsort(ca_clients_ytd)[::-1]
-    ca_sort  = ca_clients_ytd[idx_sort]
-    mg_sort  = mg_clients[idx_sort]
-    cl_sort  = [CLIENTS[i] for i in idx_sort]
-    cum_pct  = np.cumsum(ca_sort) / ca_sort.sum() * 100
+    # ── Pareto clients filtré ─────────────────────────────────────────────────
+    sec("Analyse portefeuille clients — CA & Marge contributive")
+    if len(ca_f) == 0:
+        st.info("Aucun client dans la sélection.")
+    else:
+        idx_sort = np.argsort(ca_f)[::-1]
+        ca_s     = ca_f[idx_sort]
+        mg_s     = mg_f[idx_sort]
+        cl_s     = [cl_f[i] for i in idx_sort]
+        cum_pct  = np.cumsum(ca_s) / ca_s.sum() * 100
+        bc       = [GREEN if m >= 40 else (GOLD if m >= 32 else RED) for m in mg_s]
 
-    bar_colors = []
-    for m in mg_sort:
-        if m >= 40:   bar_colors.append(GREEN)
-        elif m >= 32: bar_colors.append(GOLD)
-        else:         bar_colors.append(RED)
+        fig_par = go.Figure()
+        fig_par.add_bar(
+            x=cl_s, y=ca_s, name="CA (k€)",
+            marker=dict(color=bc, line_width=0),
+            text=[f"{v:.0f}" for v in ca_s],
+            textposition="outside", textfont=dict(color=TEXT, size=10),
+            customdata=np.stack([mg_s], axis=-1),
+            hovertemplate="<b>%{x}</b><br>CA : %{y:.0f} k€<br>Marge : %{customdata[0]:.0f}%<extra></extra>"
+        )
+        fig_par.add_scatter(
+            x=cl_s, y=cum_pct, name="CA cumulé %", yaxis="y2",
+            line=dict(color=PURPLE, width=2.5, dash="dot"),
+            mode="lines+markers",
+            marker=dict(size=7, color=PURPLE, line=dict(color=BG, width=2))
+        )
+        if len(ca_s) >= 2:
+            fig_par.add_hline(y=80, line=dict(color=PURPLE, width=1, dash="dash"),
+                              annotation_text=" Règle 80/20",
+                              annotation=dict(font=dict(color=PURPLE, size=9),
+                                              xanchor="left"))
+        fig_par.update_layout(**layout_dark(
+            height=295,
+            yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                       tickfont=dict(color=TEXT2, size=10),
+                       title=dict(text="CA k€", font=dict(color=TEXT3, size=10))),
+            yaxis2=dict(overlaying="y", side="right", range=[0, 115],
+                        ticksuffix="%", showgrid=False,
+                        tickfont=dict(color=PURPLE, size=10),
+                        title=dict(text="Cumul %", font=dict(color=PURPLE, size=10))),
+        ))
+        st.plotly_chart(fig_par, width='stretch')
 
-    fig_par = go.Figure()
-    fig_par.add_bar(
-        x=cl_sort, y=ca_sort, name="CA YTD (k€)",
-        marker=dict(color=bar_colors, line_width=0),
-        text=[f"{v:.0f}" for v in ca_sort],
-        textposition="outside", textfont=dict(color=TEXT, size=10),
-        hovertemplate="<b>%{x}</b><br>CA : %{y:.0f} k€<extra></extra>"
-    )
-    fig_par.add_scatter(
-        x=cl_sort, y=cum_pct, name="CA cumulé %", yaxis="y2",
-        line=dict(color=PURPLE, width=2.5, dash="dot"),
-        mode="lines+markers",
-        marker=dict(size=7, color=PURPLE, line=dict(color=BG, width=2))
-    )
-    fig_par.add_hline(y=80, line=dict(color=PURPLE, width=1, dash="dash"),
-                      annotation_text="Règle 80/20",
-                      annotation=dict(font=dict(color=PURPLE, size=9),
-                                      xanchor="right"))
-    fig_par.update_layout(**layout_dark(
-        height=295,
-        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                   tickfont=dict(color=TEXT2, size=10),
-                   title=dict(text="CA k€", font=dict(color=TEXT3, size=10))),
-        yaxis2=dict(overlaying="y", side="right", range=[0, 115],
-                    ticksuffix="%", showgrid=False,
-                    tickfont=dict(color=PURPLE, size=10),
-                    title=dict(text="Cumul %", font=dict(color=PURPLE, size=10))),
-    ))
-    st.plotly_chart(fig_par, width='stretch')
-
-    # ── Scatter Volume × Marge + Marge de négociation ─────────────────────────
+    # ── Matrice + Marge de négo ───────────────────────────────────────────────
     sc1, sc2 = st.columns(2)
+    CANALMAP = {"GMS": GOLD, "Export": TEAL, "B2B": GREEN}
 
     with sc1:
         sec("Matrice client — Volume vs Marge contributive")
-        CANALMAP = {"GMS": GOLD, "Export": TEAL, "B2B": GREEN}
-        canal_c  = [CANALMAP[c] for c in canal_clients]
         fig_sc = go.Figure()
-        # zones de fond
-        fig_sc.add_shape(type="rect", x0=0, x1=250, y0=35, y1=55,
-                         fillcolor=f"rgba(34,197,94,.05)", line_width=0)
-        fig_sc.add_shape(type="rect", x0=250, x1=450, y0=20, y1=35,
-                         fillcolor=f"rgba(239,68,68,.05)", line_width=0)
-        # Ligne médiane
-        fig_sc.add_hline(y=float(np.average(mg_clients, weights=ca_clients_ytd)),
-                         line=dict(color=BORDER, width=1, dash="dot"),
-                         annotation_text=" Marge moy.",
-                         annotation=dict(font=dict(color=TEXT3, size=9)))
-        fig_sc.add_vline(x=float(np.median(ca_clients_ytd)),
-                         line=dict(color=BORDER, width=1, dash="dot"))
-        # Points
-        for i, (cl, ca, mg, cc) in enumerate(zip(CLIENTS, ca_clients_ytd, mg_clients, canal_c)):
-            fig_sc.add_scatter(
-                x=[ca], y=[mg], mode="markers+text",
-                name=cl,
-                marker=dict(size=ca/12, color=cc, opacity=0.85,
-                            line=dict(color=BG, width=2)),
-                text=[cl.split()[0]], textposition="top center",
-                textfont=dict(size=9, color=TEXT2),
-                hovertemplate=f"<b>{cl}</b><br>CA : {ca:.0f} k€<br>Marge : {mg}%<extra></extra>",
-                showlegend=False
-            )
-        # Légende canaux manuelle
-        for canal, cc in CANALMAP.items():
-            fig_sc.add_scatter(x=[None], y=[None], mode="markers",
-                               name=canal, marker=dict(size=10, color=cc),
-                               showlegend=True)
+        if len(ca_f) > 0:
+            mg_moy_ref = float(np.average(mg_clients, weights=ca_clients_ytd))
+            ca_med_ref = float(np.median(ca_clients_ytd))
+            fig_sc.add_shape(type="rect", x0=0, x1=ca_med_ref, y0=mg_moy_ref, y1=55,
+                             fillcolor="rgba(34,197,94,.04)", line_width=0)
+            fig_sc.add_shape(type="rect", x0=ca_med_ref, x1=max(ca_f)*1.1, y0=20, y1=mg_moy_ref,
+                             fillcolor="rgba(239,68,68,.04)", line_width=0)
+            fig_sc.add_hline(y=mg_moy_ref,
+                             line=dict(color=BORDER, width=1, dash="dot"),
+                             annotation_text=" Marge moy. portfolio",
+                             annotation=dict(font=dict(color=TEXT3, size=9)))
+            fig_sc.add_vline(x=ca_med_ref,
+                             line=dict(color=BORDER, width=1, dash="dot"))
+            for cl, ca, mg, can in zip(cl_f, ca_f, mg_f, can_f):
+                cc = CANALMAP.get(can, TEXT3)
+                fig_sc.add_scatter(
+                    x=[ca], y=[mg], mode="markers+text",
+                    name=cl,
+                    marker=dict(size=max(12, ca/18), color=cc, opacity=0.85,
+                                line=dict(color=BG, width=2)),
+                    text=[cl.split()[0]], textposition="top center",
+                    textfont=dict(size=9, color=TEXT2),
+                    hovertemplate=f"<b>{cl}</b><br>CA : {ca:.0f} k€<br>Marge : {mg}%<extra></extra>",
+                    showlegend=False
+                )
+            for canal, cc in CANALMAP.items():
+                fig_sc.add_scatter(x=[None], y=[None], mode="markers", name=canal,
+                                   marker=dict(size=10, color=cc), showlegend=True)
         fig_sc.update_layout(**layout_dark(
             height=295,
             xaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                       title=dict(text="CA YTD (k€)", font=dict(color=TEXT3, size=10)),
+                       title=dict(text="CA (k€)", font=dict(color=TEXT3, size=10)),
                        tickfont=dict(color=TEXT2, size=10)),
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        ticksuffix="%", range=[20, 55],
@@ -574,13 +625,12 @@ with tab2:
                        tickfont=dict(color=TEXT2, size=10)),
             legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0,
                         font=dict(size=9, color=TEXT2),
-                        x=0.01, y=0.99, xanchor="left", yanchor="top",
-                        orientation="v"),
+                        x=0.01, y=0.99, xanchor="left", yanchor="top", orientation="v"),
             margin=dict(l=4, r=4, t=20, b=4),
             annotations=[
-                dict(x=380, y=22, text="⚠ Volume ↑ / Marge ↓",
+                dict(x=ca_med_ref*1.5, y=21.5, text="⚠ Gros volume, faible marge",
                      font=dict(size=9, color=RED), showarrow=False),
-                dict(x=60, y=52, text="✓ Marge ↑ / Potentiel croissance",
+                dict(x=20, y=53, text="✓ Forte marge · à développer",
                      font=dict(size=9, color=GREEN), showarrow=False),
             ]
         ))
@@ -591,21 +641,16 @@ with tab2:
         marge_nego_abs = pv_moyen - pv_plancher
         bar_neg_c = [GREEN if m > 25 else (GOLD if m > 15 else RED) for m in marge_nego]
         fig_neg = go.Figure()
-        fig_neg.add_bar(
-            x=GAMMES, y=pv_plancher, name="Prix plancher (rentabilité min.)",
-            marker=dict(color=BORDER, line_width=0)
-        )
-        fig_neg.add_bar(
-            x=GAMMES, y=marge_nego_abs, name="Marge de négociation",
-            marker=dict(color=bar_neg_c, line_width=0),
-            text=[f"-{m:.0f}%" for m in marge_nego],
-            textposition="inside", textfont=dict(size=10, color=BG, weight="bold")
-        )
-        fig_neg.add_scatter(
-            x=GAMMES, y=pv_moyen, name="Prix moyen pratiqué",
-            mode="markers", marker=dict(size=10, color=TEXT, symbol="diamond",
-                                        line=dict(color=BG, width=2))
-        )
+        fig_neg.add_bar(x=GAMMES, y=pv_plancher, name="Prix plancher (seuil rentabilité)",
+                        marker=dict(color=BORDER, line_width=0))
+        fig_neg.add_bar(x=GAMMES, y=marge_nego_abs, name="Marge de négociation disponible",
+                        marker=dict(color=bar_neg_c, line_width=0),
+                        text=[f"-{m:.0f}%" for m in marge_nego],
+                        textposition="inside", textfont=dict(size=10, color=BG))
+        fig_neg.add_scatter(x=GAMMES, y=pv_moyen, name="Prix moyen pratiqué",
+                            mode="markers",
+                            marker=dict(size=10, color=TEXT, symbol="diamond",
+                                        line=dict(color=BG, width=2)))
         fig_neg.update_layout(**layout_dark(
             height=295, barmode="stack",
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
@@ -613,55 +658,49 @@ with tab2:
                        title=dict(text="€/kg", font=dict(color=TEXT3, size=10))),
             xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
                        tickfont=dict(color=TEXT2, size=10)),
-            annotations=[
-                dict(text="Les barres colorées = baisse max accordable sans passer sous seuil de rentabilité",
-                     x=0.5, y=-0.12, xref="paper", yref="paper",
-                     showarrow=False, font=dict(size=9, color=TEXT3))
-            ]
         ))
         st.plotly_chart(fig_neg, width='stretch')
 
-    # ── CA par canal + Commandes vs prévisions ────────────────────────────────
-    fc1, fc2 = st.columns([1, 2])
+    # ── DSO + Commandes ───────────────────────────────────────────────────────
+    fc1, fc2 = st.columns([2, 3])
 
     with fc1:
-        sec("Répartition CA par canal — YTD")
-        fig_cn = go.Figure(go.Pie(
-            labels=CANAUX, values=ca_canaux_ytd, hole=0.52,
-            marker=dict(colors=CANAL_COLORS, line=dict(color=BG, width=2)),
-            textfont=dict(size=10, color=TEXT), textinfo="label+percent",
-            hovertemplate="<b>%{label}</b><br>%{value:,.0f} k€<br>%{percent}<extra></extra>"
-        ))
-        fig_cn.add_annotation(
-            text=f"<b>{ca_canaux_ytd.sum()/1000:.1f}</b><br>M€",
-            x=0.5, y=0.5, showarrow=False,
-            font=dict(size=13, color=TEXT, family="Inter, Arial")
-        )
-        fig_cn.update_layout(
-            height=265, margin=dict(l=0, r=0, t=20, b=0),
-            paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
-            font=dict(family="Inter, Arial, sans-serif", size=10, color=TEXT2)
-        )
-        st.plotly_chart(fig_cn, width='stretch')
+        sec("DSO par client — Délai d'encaissement (j)")
+        if len(dso_f) > 0:
+            dso_colors = [RED if d > 50 else (ORANGE if d > 40 else GREEN) for d in dso_f]
+            fig_dso = go.Figure(go.Bar(
+                x=cl_f, y=dso_f,
+                marker=dict(color=dso_colors, line_width=0),
+                text=[f"{d} j" for d in dso_f],
+                textposition="outside", textfont=dict(color=TEXT, size=10),
+            ))
+            fig_dso.add_hline(y=45, line=dict(color=ORANGE, width=1.5, dash="dash"),
+                              annotation_text=" Seuil 45j",
+                              annotation=dict(font=dict(color=ORANGE, size=9)))
+            fig_dso.update_layout(**layout_dark(
+                height=255, showlegend=False,
+                yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
+                           ticksuffix=" j", range=[0, 70],
+                           tickfont=dict(color=TEXT2, size=10)),
+                xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
+                           tickfont=dict(color=TEXT2, size=9), tickangle=-20),
+            ))
+            st.plotly_chart(fig_dso, width='stretch')
 
     with fc2:
         sec("Commandes vs prévisions mensuelles (k€)")
         fig_cmd = go.Figure()
-        fig_cmd.add_bar(
-            x=MOIS, y=cmd_prev, name="Prévisions",
-            marker=dict(color=BORDER, line_width=0), opacity=0.6
-        )
+        fig_cmd.add_bar(x=MOIS, y=cmd_prev, name="Prévisions",
+                        marker=dict(color=BORDER, line_width=0), opacity=0.6)
         fig_cmd.add_bar(
             x=MOIS, y=cmd_real, name="Réalisé",
-            marker=dict(
-                color=[GREEN if r >= p else RED for r, p in zip(cmd_real, cmd_prev)],
-                line_width=0
-            ),
+            marker=dict(color=[GREEN if r >= p else RED
+                                for r, p in zip(cmd_real, cmd_prev)], line_width=0),
             text=[f"{r-p:+.0f}" for r, p in zip(cmd_real, cmd_prev)],
             textposition="outside", textfont=dict(size=9, color=TEXT2)
         )
         fig_cmd.update_layout(**layout_dark(
-            height=265, barmode="group",
+            height=255, barmode="group",
             yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
                        tickfont=dict(color=TEXT2, size=10),
                        title=dict(text="k€", font=dict(color=TEXT3, size=10))),
@@ -670,28 +709,89 @@ with tab2:
         ))
         st.plotly_chart(fig_cmd, width='stretch')
 
-    # ── DSO par client ────────────────────────────────────────────────────────
-    sec("Délai moyen d'encaissement par client (DSO) — Octobre 2026")
-    dso_colors = [RED if d > 50 else (ORANGE if d > 40 else GREEN) for d in dso_clients]
-    fig_dso = go.Figure(go.Bar(
-        x=CLIENTS, y=dso_clients,
-        marker=dict(color=dso_colors, line_width=0),
-        text=[f"{d} j" for d in dso_clients],
-        textposition="outside", textfont=dict(color=TEXT, size=10),
-        hovertemplate="%{x}<br>DSO : %{y} jours<extra></extra>"
-    ))
-    fig_dso.add_hline(y=45, line=dict(color=ORANGE, width=1.5, dash="dash"),
-                      annotation_text=" Seuil alerte 45j",
-                      annotation=dict(font=dict(color=ORANGE, size=9)))
-    fig_dso.update_layout(**layout_dark(
-        height=240, showlegend=False,
-        yaxis=dict(gridcolor=BORDER, linecolor=BORDER, zeroline=False,
-                   ticksuffix=" j", range=[0, 70],
-                   tickfont=dict(color=TEXT2, size=10)),
-        xaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
-                   tickfont=dict(color=TEXT2, size=10)),
-    ))
-    st.plotly_chart(fig_dso, width='stretch')
+    # ════════════════════════════════════════════════════════════════════════════
+    # SIMULATEUR DE REMISE COMMERCIALE
+    # ════════════════════════════════════════════════════════════════════════════
+    st.markdown(f"""
+<div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+            padding:16px 20px;margin-top:10px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;
+              background:linear-gradient(90deg,{GOLD},{ORANGE},transparent);"></div>
+  <div style="font-size:10px;font-weight:800;color:{GOLD};text-transform:uppercase;
+              letter-spacing:2px;margin-bottom:4px;">⚡ Simulateur de remise commerciale</div>
+  <div style="font-size:11px;color:{TEXT2};">
+    Ajustez les paramètres pour simuler l'impact d'une concession tarifaire
+    avant d'entrer en négociation.
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    sim1, sim2, sim3 = st.columns([1, 1, 2])
+    with sim1:
+        client_sim = st.selectbox("Client", CLIENTS, key="sim_client",
+                                  label_visibility="visible")
+        ci_sim = CLIENTS.index(client_sim)
+    with sim2:
+        gamme_sim = st.selectbox("Gamme produit", GAMMES, key="sim_gamme")
+        gi_sim = GAMMES.index(gamme_sim)
+    with sim3:
+        remise_sim = st.slider(
+            "Remise accordée au client (%)",
+            min_value=0.0, max_value=30.0, value=5.0, step=0.5,
+            format="%.1f%%", key="sim_remise"
+        )
+
+    # ── Calculs simulateur ────────────────────────────────────────────────────
+    pv_act       = pv_moyen[gi_sim]
+    pfl          = pv_plancher[gi_sim]
+    mg_act       = mg_clients[ci_sim]
+    pv_sim       = pv_act * (1 - remise_sim / 100)
+    mg_sim       = max(0, (pv_sim - pfl) / pv_sim * 100) if pv_sim > 0 else 0
+    delta_mg     = mg_sim - mg_act
+    ca_client    = float(ca_clients_ytd[ci_sim])
+    ca_sim       = ca_client * (1 - remise_sim / 100)
+    perte_ca     = ca_client - ca_sim
+    # Volume compensatoire pour maintenir le même résultat brut
+    vol_comp_pct = (remise_sim / (100 - remise_sim) * 100) if remise_sim < 100 else 999
+    passe_seuil  = pv_sim < pfl
+
+    # Couleurs résultat
+    col_res = RED if passe_seuil else (ORANGE if delta_mg < -5 else GREEN)
+    statut  = "🔴 SOUS LE SEUIL DE RENTABILITÉ" if passe_seuil else ("🟠 Marge dégradée" if delta_mg < -5 else "🟢 Remise acceptable")
+
+    r1, r2, r3, r4 = st.columns(4)
+    res_data = [
+        (r1, "Prix après remise", f"{pv_sim:.2f} €/kg",
+         f"Plancher : {pfl:.2f} €/kg", not passe_seuil, RED if passe_seuil else GREEN, GOLD),
+        (r2, "Marge contributive sim.", f"{mg_sim:.1f}%",
+         f"{delta_mg:+.1f} pt vs situation actuelle", delta_mg >= 0, RED if delta_mg < 0 else GREEN, TEAL),
+        (r3, "Impact CA annualisé", f"-{perte_ca:.0f} k€",
+         f"CA actuel {ca_client:.0f} k€ → {ca_sim:.0f} k€", False, RED, ORANGE),
+        (r4, "Volume compensatoire", f"+{vol_comp_pct:.1f}%",
+         "Hausse volume nécessaire pour compenser", vol_comp_pct < 15, RED if vol_comp_pct > 20 else GOLD, BLUE),
+    ]
+    for col, label, val, delta, up, dc, bc in res_data:
+        with col:
+            arrow = "▲" if up else "▼"
+            glow = f"background: radial-gradient(ellipse at top, {bc}18 0%, transparent 70%);"
+            st.markdown(f"""
+<div class="kpi">
+  <div class="kpi-top" style="background:{bc};"></div>
+  <div class="kpi-glow" style="{glow}"></div>
+  <div class="kpi-label">{label}</div>
+  <div class="kpi-val" style="color:{dc};">{val}</div>
+  <div class="kpi-delta" style="color:{dc};">{delta}</div>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown(f"""
+<div style="margin-top:10px;background:{'rgba(239,68,68,.08)' if passe_seuil else 'rgba(34,197,94,.06)'};
+            border:1px solid {RED if passe_seuil else GREEN};border-radius:8px;
+            padding:10px 16px;font-size:12px;font-weight:600;color:{col_res};">
+  {statut} &nbsp;—&nbsp;
+  Remise de <b>{remise_sim:.1f}%</b> sur <b>{gamme_sim}</b> pour <b>{client_sim}</b> :
+  prix {pv_act:.2f} → {pv_sim:.2f} €/kg &nbsp;·&nbsp;
+  marge {mg_act:.0f}% → {mg_sim:.1f}%
+  {'&nbsp; ⚠ Prix passé sous le plancher de rentabilité — refuser ou renégocier les volumes.' if passe_seuil else ''}
+</div>""", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
 # TAB 3 — PRODUCTION & COÛTS
